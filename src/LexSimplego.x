@@ -3,7 +3,7 @@
 {
 {-# OPTIONS -fno-warn-incomplete-patterns #-}
 {-# OPTIONS_GHC -w #-}
-module LexGo where
+module LexSimplego where
 
 
 
@@ -21,7 +21,7 @@ $i = [$l $d _ ']          -- identifier character
 $u = [\0-\255]          -- universal: any character
 
 @rsyms =    -- symbols and non-identifier-like reserved words
-   \( | \) | \, | \{ | \} | \; | \= | \+ \+ | \- \- | \- | \! | \& \& | \| \| | \+ | \* | \/ | \% | \< | \< \= | \> | \> \= | \= \= | \! \=
+   \( | \) | \, | \{ | \} | \; | \= | \+ \+ | \- \- | \+ \= | \- \= | \* \= | \/ \= | \% \= | \: \= | \- | \! | \& \& | \| \| | \+ | \* | \/ | \% | \< | \< \= | \> | \> \= | \= \= | \! \=
 
 :-
 "//" [.]* ; -- Toss single line comments
@@ -31,7 +31,7 @@ $white+ ;
 @rsyms { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
 
 $l $i*   { tok (\p s -> PT p (eitherResIdent (TV . share) s)) }
-\" ([$u # [\" \\ \n]] | (\\ (\" | \\ | \' | n | t)))* \"{ tok (\p s -> PT p (TL $ share $ unescapeInitTail s)) }
+
 
 $d+      { tok (\p s -> PT p (TI $ share s))    }
 
@@ -98,7 +98,7 @@ eitherResIdent tv s = treeFind resWords
                               | s == a = t
 
 resWords :: BTree
-resWords = b "=" 17 (b "++" 9 (b "(" 5 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 4 N N)) (b "*" 7 (b ")" 6 N N) (b "+" 8 N N))) (b "/" 13 (b "-" 11 (b "," 10 N N) (b "--" 12 N N)) (b "<" 15 (b ";" 14 N N) (b "<=" 16 N N)))) (b "return" 26 (b "else" 22 (b ">=" 20 (b ">" 19 (b "==" 18 N N) N) (b "bool" 21 N N)) (b "if" 24 (b "false" 23 N N) (b "int" 25 N N))) (b "while" 30 (b "true" 28 (b "string" 27 N N) (b "void" 29 N N)) (b "||" 32 (b "{" 31 N N) (b "}" 33 N N))))
+resWords = b "<" 21 (b "++" 11 (b "(" 6 (b "%" 3 (b "!=" 2 (b "!" 1 N N) N) (b "&&" 5 (b "%=" 4 N N) N)) (b "*=" 9 (b "*" 8 (b ")" 7 N N) N) (b "+" 10 N N))) (b "-=" 16 (b "-" 14 (b "," 13 (b "+=" 12 N N) N) (b "--" 15 N N)) (b ":=" 19 (b "/=" 18 (b "/" 17 N N) N) (b ";" 20 N N)))) (b "for" 32 (b "bool" 27 (b "==" 24 (b "=" 23 (b "<=" 22 N N) N) (b ">=" 26 (b ">" 25 N N) N)) (b "else" 30 (b "continue" 29 (b "break" 28 N N) N) (b "false" 31 N N))) (b "true" 37 (b "int" 35 (b "if" 34 (b "func" 33 N N) N) (b "return" 36 N N)) (b "||" 40 (b "{" 39 (b "var" 38 N N) N) (b "}" 41 N N))))
    where b s n = let bs = id s
                   in B bs (TS bs n)
 

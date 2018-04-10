@@ -6,11 +6,11 @@ import System.IO ( stdin, hGetContents )
 import System.Environment ( getArgs, getProgName )
 import System.Exit ( exitFailure, exitSuccess )
 
-import LexGo
-import ParGo
-import SkelGo
-import PrintGo
-import AbsGo
+import LexSimplego
+import ParSimplego
+import SkelSimplego
+import PrintSimplego
+import AbsSimplego
 
 
 

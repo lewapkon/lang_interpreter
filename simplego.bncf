@@ -1,0 +1,131 @@
+-- programs ------------------------------------------------
+
+entrypoints Program ;
+
+Program.   Program ::= [TopDef] ;
+
+FnDef.     TopDef ::= "func" Ident "(" [Arg] ")" Type Block ;
+
+separator  nonempty TopDef "" ;
+
+Arg.       Arg ::= Ident VarType;
+
+separator  Arg "," ;
+
+-- statements ----------------------------------------------
+
+Block.     Block ::= "{" [Stmt] "}" ;
+
+separator  Stmt "" ;
+
+SimpleStmt.   Stmt ::= SimpleStmt ";" ;
+ReturnStmt.   Stmt ::= ReturnStmt ";" ;
+BreakStmt.    Stmt ::= BreakStmt ";" ;
+ContinueStmt. Stmt ::= ContinueStmt ";" ;
+BlockStmt.    Stmt ::= Block ;
+IfStmt.       Stmt ::= IfStmt ;
+ForStmt.      Stmt ::= ForStmt ;
+
+EmptySimpleStmt.    SimpleStmt ::= ;
+ExprSimpStmt.       SimpleStmt ::= Expr ;
+AssSimpleStmt.      SimpleStmt ::= AssStmt ;
+ShortAssSimpleStmt. SimpleStmt ::= ShAssStmt ;
+DeclSimpleStmt.     SimpleStmt ::= DeclStmt ;
+
+Ass.       AssStmt ::= Ident "=" Expr ;
+Incr.      AssStmt ::= Ident "++" ;
+Decr.      AssStmt ::= Ident "--" ;
+AddAss.    AssStmt ::= Ident "+=" Expr ;
+SubAss.    AssStmt ::= Ident "-=" Expr ;
+MulAss.    AssStmt ::= Ident "*=" Expr ;
+DivAss.    AssStmt ::= Ident "/=" Expr ;
+ModAss.    AssStmt ::= Ident "%=" Expr ;
+
+ShortAss.  ShAssStmt ::= Ident ":=" Expr ;
+
+Decl.      DeclStmt ::= "var" Ident Type Item ;
+
+NoInit.    Item ::= ;
+Init.      Item ::= "=" Expr ;
+
+Ret.       ReturnStmt ::= "return" MaybeExpr ;
+
+MaybeExprYes. MaybeExpr ::= Expr ;
+MaybeExprNo.  MaybeExpr ::= ;
+
+Break.     BreakStmt ::= "break" ;
+
+Continue.  ContinueStmt ::= "continue" ;
+
+If.        IfStmt ::= "if" Expr Block MaybeElse;
+
+NoElse.    MaybeElse ::= ;
+Else.      MaybeElse ::= "else" IfOrBlock;
+
+IfOfIfOrBlock.    IfOrBlock ::= IfStmt ;
+BlockOfIfOrBlock. IfOrBlock ::= Block ;
+
+For.       ForStmt ::= "for" ForClause Block ;
+
+ForCond.   ForClause ::= Condition ;
+ForFull.   ForClause ::= SimpleStmt ";" Condition ";" SimpleStmt ;
+
+ExprCond.  Condition ::= Expr ;
+TrueCond.  Condition ::= ;
+
+-- Types ---------------------------------------------------
+
+VarType.   Type ::= VarType ;
+Void.      Type ::= ;
+Int.       VarType ::= "int" ;
+Bool.      VarType ::= "bool" ;
+
+Fun.       Type ::= "func" "(" [VarType] ")" Type ;
+separator  VarType "," ;
+
+-- Expressions ---------------------------------------------
+
+EVar.      Expr6 ::= Ident ;
+ELitInt.   Expr6 ::= Integer ;
+EFun.      Expr6 ::= "func" "(" [Arg] ")" Type Block ;
+ELitTrue.  Expr6 ::= "true" ;
+ELitFalse. Expr6 ::= "false" ;
+EApp.      Expr6 ::= Ident "(" [Expr] ")" ;
+
+ENeg.      Expr5 ::= "-" Expr6 ;
+ENot.      Expr5 ::= "!" Expr6 ;
+
+EMul.      Expr4 ::= Expr4 MulOp Expr5 ;
+
+EAdd.      Expr3 ::= Expr3 AddOp Expr4 ;
+
+ERel.      Expr2 ::= Expr2 RelOp Expr3 ;
+
+EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
+
+EOr.       Expr ::= Expr1 "||" Expr ;
+
+coercions  Expr 6 ;
+
+separator  Expr "," ;
+
+-- operators -----------------------------------------------
+
+PlusOp.    AddOp ::= "+" ;
+MinusOp.   AddOp ::= "-" ;
+
+TimesOp.   MulOp ::= "*" ;
+DivOp.     MulOp ::= "/" ;
+ModOp.     MulOp ::= "%" ;
+
+LTOp.      RelOp ::= "<" ;
+LEOp.      RelOp ::= "<=" ;
+GTOp.      RelOp ::= ">" ;
+GEOp.      RelOp ::= ">=" ;
+EQOp.      RelOp ::= "==" ;
+NEOp.      RelOp ::= "!=" ;
+
+-- comments ------------------------------------------------
+
+comment    "//" ;
+comment    "/*" "*/" ;
