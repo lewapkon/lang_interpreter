@@ -6,10 +6,10 @@ func functionName2(param1 bool, param2 int) int {}
 
 func main() {
 	// assign a function to a name
-	add := func(a int, b int) int {
+	var add func(int, int) int = func(a int, b int) int {
 		return a + b;
 	};
-	showTrue := func(a int) {
+	var showTrue func(int) = func(a int) {
 		//print(a);
 	};
 	showTrue(8 - 5);
@@ -20,7 +20,7 @@ func main() {
 // Closures, lexically scoped: Functions can access values that were
 // in scope when defining the function
 func scope() func() int {
-	outer_var := 2;
+	var outer_var int = 2;
 	var foo func() int = func() int { return outer_var; };
 	return foo;
 }
@@ -28,7 +28,7 @@ func scope() func() int {
 // Closures: don't mutate outer vars, instead redefine them!
 func outer() func() int {
 	var outer_var int = 2;
-	inner := func() int {
+	var inner func() int = func() int {
 		outer_var += 99; // attempt to mutate outer_var from outer scope
 		return outer_var;
 	};
@@ -63,7 +63,7 @@ func conditions() {
 func loops() {
 	// There's only `for`, no `while`, no `until`
 	var i int = 20;
-	for i := 1; i < 10; i++ {
+	for var i int = 1; i < 10; i++ {
 	}
 	for ; i < 10; { // while - loop
 	}

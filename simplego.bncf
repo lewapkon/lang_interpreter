@@ -29,7 +29,6 @@ ForStmt.      Stmt ::= ForStmt ;
 EmptySimpleStmt.    SimpleStmt ::= ;
 ExprSimpStmt.       SimpleStmt ::= Expr ;
 AssSimpleStmt.      SimpleStmt ::= AssStmt ;
-ShortAssSimpleStmt. SimpleStmt ::= ShAssStmt ;
 DeclSimpleStmt.     SimpleStmt ::= DeclStmt ;
 
 Ass.       AssStmt ::= Ident "=" Expr ;
@@ -40,8 +39,6 @@ SubAss.    AssStmt ::= Ident "-=" Expr ;
 MulAss.    AssStmt ::= Ident "*=" Expr ;
 DivAss.    AssStmt ::= Ident "/=" Expr ;
 ModAss.    AssStmt ::= Ident "%=" Expr ;
-
-ShortAss.  ShAssStmt ::= Ident ":=" Expr ;
 
 Decl.      DeclStmt ::= "var" Ident Type Item ;
 
@@ -79,8 +76,7 @@ VarType.   Type ::= VarType ;
 Void.      Type ::= ;
 Int.       VarType ::= "int" ;
 Bool.      VarType ::= "bool" ;
-
-Fun.       Type ::= "func" "(" [VarType] ")" Type ;
+Fun.       VarType ::= "func" "(" [VarType] ")" Type ;
 separator  VarType "," ;
 
 -- Expressions ---------------------------------------------
