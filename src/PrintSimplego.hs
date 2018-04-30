@@ -118,7 +118,6 @@ instance Print SimpleStmt where
     EmptySimpleStmt -> prPrec i 0 (concatD [])
     ExprSimpStmt expr -> prPrec i 0 (concatD [prt 0 expr])
     AssSimpleStmt assstmt -> prPrec i 0 (concatD [prt 0 assstmt])
-    ShortAssSimpleStmt shassstmt -> prPrec i 0 (concatD [prt 0 shassstmt])
     DeclSimpleStmt declstmt -> prPrec i 0 (concatD [prt 0 declstmt])
 
 instance Print AssStmt where
@@ -131,10 +130,6 @@ instance Print AssStmt where
     MulAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "*="), prt 0 expr])
     DivAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "/="), prt 0 expr])
     ModAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "%="), prt 0 expr])
-
-instance Print ShAssStmt where
-  prt i e = case e of
-    ShortAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString ":="), prt 0 expr])
 
 instance Print DeclStmt where
   prt i e = case e of
@@ -194,12 +189,12 @@ instance Print Type where
   prt i e = case e of
     VarType vartype -> prPrec i 0 (concatD [prt 0 vartype])
     Void -> prPrec i 0 (concatD [])
-    Fun vartypes type_ -> prPrec i 0 (concatD [doc (showString "func"), doc (showString "("), prt 0 vartypes, doc (showString ")"), prt 0 type_])
 
 instance Print VarType where
   prt i e = case e of
     Int -> prPrec i 0 (concatD [doc (showString "int")])
     Bool -> prPrec i 0 (concatD [doc (showString "bool")])
+    Fun vartypes type_ -> prPrec i 0 (concatD [doc (showString "func"), doc (showString "("), prt 0 vartypes, doc (showString ")"), prt 0 type_])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])

@@ -34,7 +34,6 @@ data SimpleStmt
     = EmptySimpleStmt
     | ExprSimpStmt Expr
     | AssSimpleStmt AssStmt
-    | ShortAssSimpleStmt ShAssStmt
     | DeclSimpleStmt DeclStmt
   deriving (Eq, Ord, Show, Read)
 
@@ -47,9 +46,6 @@ data AssStmt
     | MulAss Ident Expr
     | DivAss Ident Expr
     | ModAss Ident Expr
-  deriving (Eq, Ord, Show, Read)
-
-data ShAssStmt = ShortAss Ident Expr
   deriving (Eq, Ord, Show, Read)
 
 data DeclStmt = Decl Ident Type Item
@@ -89,10 +85,10 @@ data ForClause
 data Condition = ExprCond Expr | TrueCond
   deriving (Eq, Ord, Show, Read)
 
-data Type = VarType VarType | Void | Fun [VarType] Type
+data Type = VarType VarType | Void
   deriving (Eq, Ord, Show, Read)
 
-data VarType = Int | Bool
+data VarType = Int | Bool | Fun [VarType] Type
   deriving (Eq, Ord, Show, Read)
 
 data Expr

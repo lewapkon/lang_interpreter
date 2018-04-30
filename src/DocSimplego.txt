@@ -35,11 +35,10 @@ The symbols used in simplego are the following:
   | ( | ) | , | {
   | } | ; | = | ++
   | -- | += | -= | *=
-  | /= | %= | := | -
-  | ! | && | || | +
-  | * | / | % | <
-  | <= | > | >= | ==
-  | != |  |  | 
+  | /= | %= | - | !
+  | && | || | + | *
+  | / | % | < | <=
+  | > | >= | == | !=
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -71,7 +70,6 @@ All other symbols are terminals.
   | //SimpleStmt// | -> | **eps**
   |  |  **|**  | //Expr// 
   |  |  **|**  | //AssStmt// 
-  |  |  **|**  | //ShAssStmt// 
   |  |  **|**  | //DeclStmt// 
   | //AssStmt// | -> | //Ident// ``=`` //Expr// 
   |  |  **|**  | //Ident// ``++`` 
@@ -81,7 +79,6 @@ All other symbols are terminals.
   |  |  **|**  | //Ident// ``*=`` //Expr// 
   |  |  **|**  | //Ident// ``/=`` //Expr// 
   |  |  **|**  | //Ident// ``%=`` //Expr// 
-  | //ShAssStmt// | -> | //Ident// ``:=`` //Expr// 
   | //DeclStmt// | -> | ``var`` //Ident// //Type// //Item// 
   | //Item// | -> | **eps**
   |  |  **|**  | ``=`` //Expr// 
@@ -102,9 +99,9 @@ All other symbols are terminals.
   |  |  **|**  | **eps**
   | //Type// | -> | //VarType// 
   |  |  **|**  | **eps**
-  |  |  **|**  | ``func`` ``(`` //[VarType]// ``)`` //Type// 
   | //VarType// | -> | ``int`` 
   |  |  **|**  | ``bool`` 
+  |  |  **|**  | ``func`` ``(`` //[VarType]// ``)`` //Type// 
   | //[VarType]// | -> | **eps**
   |  |  **|**  | //VarType// 
   |  |  **|**  | //VarType// ``,`` //[VarType]// 

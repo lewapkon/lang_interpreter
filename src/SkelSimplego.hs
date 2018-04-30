@@ -38,7 +38,6 @@ transSimpleStmt x = case x of
   EmptySimpleStmt -> failure x
   ExprSimpStmt expr -> failure x
   AssSimpleStmt assstmt -> failure x
-  ShortAssSimpleStmt shassstmt -> failure x
   DeclSimpleStmt declstmt -> failure x
 transAssStmt :: AssStmt -> Result
 transAssStmt x = case x of
@@ -50,9 +49,6 @@ transAssStmt x = case x of
   MulAss ident expr -> failure x
   DivAss ident expr -> failure x
   ModAss ident expr -> failure x
-transShAssStmt :: ShAssStmt -> Result
-transShAssStmt x = case x of
-  ShortAss ident expr -> failure x
 transDeclStmt :: DeclStmt -> Result
 transDeclStmt x = case x of
   Decl ident type_ item -> failure x
@@ -99,11 +95,11 @@ transType :: Type -> Result
 transType x = case x of
   VarType vartype -> failure x
   Void -> failure x
-  Fun vartypes type_ -> failure x
 transVarType :: VarType -> Result
 transVarType x = case x of
   Int -> failure x
   Bool -> failure x
+  Fun vartypes type_ -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
   EVar ident -> failure x
