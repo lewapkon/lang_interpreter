@@ -47,12 +47,13 @@ import ErrM
   'func' { PT _ (TS _ 32) }
   'if' { PT _ (TS _ 33) }
   'int' { PT _ (TS _ 34) }
-  'return' { PT _ (TS _ 35) }
-  'true' { PT _ (TS _ 36) }
-  'var' { PT _ (TS _ 37) }
-  '{' { PT _ (TS _ 38) }
-  '||' { PT _ (TS _ 39) }
-  '}' { PT _ (TS _ 40) }
+  'print' { PT _ (TS _ 35) }
+  'return' { PT _ (TS _ 36) }
+  'true' { PT _ (TS _ 37) }
+  'var' { PT _ (TS _ 38) }
+  '{' { PT _ (TS _ 39) }
+  '||' { PT _ (TS _ 40) }
+  '}' { PT _ (TS _ 41) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -81,40 +82,35 @@ ListStmt :: { [Stmt] }
 ListStmt : {- empty -} { [] } | ListStmt Stmt { flip (:) $1 $2 }
 Stmt :: { Stmt }
 Stmt : SimpleStmt ';' { AbsSimplego.SimpleStmt $1 }
-     | ReturnStmt ';' { AbsSimplego.ReturnStmt $1 }
-     | BreakStmt ';' { AbsSimplego.BreakStmt $1 }
-     | ContinueStmt ';' { AbsSimplego.ContinueStmt $1 }
+     | 'return' MaybeExpr ';' { AbsSimplego.ReturnStmt $2 }
+     | 'break' ';' { AbsSimplego.BreakStmt }
+     | 'continue' ';' { AbsSimplego.ContinueStmt }
+     | 'print' '(' Expr ')' ';' { AbsSimplego.PrintStmt $3 }
      | Block { AbsSimplego.BlockStmt $1 }
      | IfStmt { AbsSimplego.IfStmt $1 }
-     | ForStmt { AbsSimplego.ForStmt $1 }
+     | 'for' ForClause Block { AbsSimplego.ForStmt $2 $3 }
 SimpleStmt :: { SimpleStmt }
 SimpleStmt : {- empty -} { AbsSimplego.EmptySimpleStmt }
-           | Expr { AbsSimplego.ExprSimpStmt $1 }
+           | Expr { AbsSimplego.ExprSimpleStmt $1 }
            | AssStmt { AbsSimplego.AssSimpleStmt $1 }
-           | DeclStmt { AbsSimplego.DeclSimpleStmt $1 }
+           | 'var' Ident VarType Item { AbsSimplego.DeclSimpleStmt $2 $3 $4 }
 AssStmt :: { AssStmt }
 AssStmt : Ident '=' Expr { AbsSimplego.Ass $1 $3 }
         | Ident '++' { AbsSimplego.Incr $1 }
         | Ident '--' { AbsSimplego.Decr $1 }
-        | Ident '+=' Expr { AbsSimplego.AddAss $1 $3 }
-        | Ident '-=' Expr { AbsSimplego.SubAss $1 $3 }
-        | Ident '*=' Expr { AbsSimplego.MulAss $1 $3 }
-        | Ident '/=' Expr { AbsSimplego.DivAss $1 $3 }
-        | Ident '%=' Expr { AbsSimplego.ModAss $1 $3 }
-DeclStmt :: { DeclStmt }
-DeclStmt : 'var' Ident Type Item { AbsSimplego.Decl $2 $3 $4 }
+        | Ident AssOp Expr { AbsSimplego.AssOp $1 $2 $3 }
+AssOp :: { AssOp }
+AssOp : '+=' { AbsSimplego.AddAss }
+      | '-=' { AbsSimplego.SubAss }
+      | '*=' { AbsSimplego.MulAss }
+      | '/=' { AbsSimplego.DivAss }
+      | '%=' { AbsSimplego.ModAss }
 Item :: { Item }
 Item : {- empty -} { AbsSimplego.NoInit }
      | '=' Expr { AbsSimplego.Init $2 }
-ReturnStmt :: { ReturnStmt }
-ReturnStmt : 'return' MaybeExpr { AbsSimplego.Ret $2 }
 MaybeExpr :: { MaybeExpr }
 MaybeExpr : Expr { AbsSimplego.MaybeExprYes $1 }
           | {- empty -} { AbsSimplego.MaybeExprNo }
-BreakStmt :: { BreakStmt }
-BreakStmt : 'break' { AbsSimplego.Break }
-ContinueStmt :: { ContinueStmt }
-ContinueStmt : 'continue' { AbsSimplego.Continue }
 IfStmt :: { IfStmt }
 IfStmt : 'if' Expr Block MaybeElse { AbsSimplego.If $2 $3 $4 }
 MaybeElse :: { MaybeElse }
@@ -123,8 +119,6 @@ MaybeElse : {- empty -} { AbsSimplego.NoElse }
 IfOrBlock :: { IfOrBlock }
 IfOrBlock : IfStmt { AbsSimplego.IfOfIfOrBlock $1 }
           | Block { AbsSimplego.BlockOfIfOrBlock $1 }
-ForStmt :: { ForStmt }
-ForStmt : 'for' ForClause Block { AbsSimplego.For $2 $3 }
 ForClause :: { ForClause }
 ForClause : Condition { AbsSimplego.ForCond $1 }
           | SimpleStmt ';' Condition ';' SimpleStmt { AbsSimplego.ForFull $1 $3 $5 }
@@ -133,23 +127,25 @@ Condition : Expr { AbsSimplego.ExprCond $1 }
           | {- empty -} { AbsSimplego.TrueCond }
 Type :: { Type }
 Type : VarType { AbsSimplego.VarType $1 }
-     | {- empty -} { AbsSimplego.Void }
+     | {- empty -} { AbsSimplego.TVoid }
 VarType :: { VarType }
-VarType : 'int' { AbsSimplego.Int }
-        | 'bool' { AbsSimplego.Bool }
-        | 'func' '(' ListVarType ')' Type { AbsSimplego.Fun $3 $5 }
+VarType : 'int' { AbsSimplego.TInt }
+        | 'bool' { AbsSimplego.TBool }
+        | 'func' '(' ListVarType ')' Type { AbsSimplego.TFun $3 $5 }
 ListVarType :: { [VarType] }
 ListVarType : {- empty -} { [] }
             | VarType { (:[]) $1 }
             | VarType ',' ListVarType { (:) $1 $3 }
-Expr6 :: { Expr }
-Expr6 : Ident { AbsSimplego.EVar $1 }
+Expr7 :: { Expr }
+Expr7 : Ident { AbsSimplego.EVar $1 }
       | Integer { AbsSimplego.ELitInt $1 }
       | 'func' '(' ListArg ')' Type Block { AbsSimplego.EFun $3 $5 $6 }
       | 'true' { AbsSimplego.ELitTrue }
       | 'false' { AbsSimplego.ELitFalse }
-      | Ident '(' ListExpr ')' { AbsSimplego.EApp $1 $3 }
       | '(' Expr ')' { $2 }
+Expr6 :: { Expr }
+Expr6 : Expr6 '(' ListExpr ')' { AbsSimplego.EApp $1 $3 }
+      | Expr7 { $1 }
 Expr5 :: { Expr }
 Expr5 : '-' Expr6 { AbsSimplego.ENeg $2 }
       | '!' Expr6 { AbsSimplego.ENot $2 }

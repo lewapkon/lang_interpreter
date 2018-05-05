@@ -29,7 +29,8 @@ The set of reserved words is the set of terminals appearing in the grammar. Thos
 The reserved words used in simplego are the following:
   | ``bool`` | ``break`` | ``continue`` | ``else``
   | ``false`` | ``for`` | ``func`` | ``if``
-  | ``int`` | ``return`` | ``true`` | ``var``
+  | ``int`` | ``print`` | ``return`` | ``true``
+  | ``var`` |  |  | 
 
 The symbols used in simplego are the following:
   | ( | ) | , | {
@@ -61,38 +62,35 @@ All other symbols are terminals.
   | //[Stmt]// | -> | **eps**
   |  |  **|**  | //Stmt// //[Stmt]// 
   | //Stmt// | -> | //SimpleStmt// ``;`` 
-  |  |  **|**  | //ReturnStmt// ``;`` 
-  |  |  **|**  | //BreakStmt// ``;`` 
-  |  |  **|**  | //ContinueStmt// ``;`` 
+  |  |  **|**  | ``return`` //MaybeExpr// ``;`` 
+  |  |  **|**  | ``break`` ``;`` 
+  |  |  **|**  | ``continue`` ``;`` 
+  |  |  **|**  | ``print`` ``(`` //Expr// ``)`` ``;`` 
   |  |  **|**  | //Block// 
   |  |  **|**  | //IfStmt// 
-  |  |  **|**  | //ForStmt// 
+  |  |  **|**  | ``for`` //ForClause// //Block// 
   | //SimpleStmt// | -> | **eps**
   |  |  **|**  | //Expr// 
   |  |  **|**  | //AssStmt// 
-  |  |  **|**  | //DeclStmt// 
+  |  |  **|**  | ``var`` //Ident// //VarType// //Item// 
   | //AssStmt// | -> | //Ident// ``=`` //Expr// 
   |  |  **|**  | //Ident// ``++`` 
   |  |  **|**  | //Ident// ``--`` 
-  |  |  **|**  | //Ident// ``+=`` //Expr// 
-  |  |  **|**  | //Ident// ``-=`` //Expr// 
-  |  |  **|**  | //Ident// ``*=`` //Expr// 
-  |  |  **|**  | //Ident// ``/=`` //Expr// 
-  |  |  **|**  | //Ident// ``%=`` //Expr// 
-  | //DeclStmt// | -> | ``var`` //Ident// //Type// //Item// 
+  |  |  **|**  | //Ident// //AssOp// //Expr// 
+  | //AssOp// | -> | ``+=`` 
+  |  |  **|**  | ``-=`` 
+  |  |  **|**  | ``*=`` 
+  |  |  **|**  | ``/=`` 
+  |  |  **|**  | ``%=`` 
   | //Item// | -> | **eps**
   |  |  **|**  | ``=`` //Expr// 
-  | //ReturnStmt// | -> | ``return`` //MaybeExpr// 
   | //MaybeExpr// | -> | //Expr// 
   |  |  **|**  | **eps**
-  | //BreakStmt// | -> | ``break`` 
-  | //ContinueStmt// | -> | ``continue`` 
   | //IfStmt// | -> | ``if`` //Expr// //Block// //MaybeElse// 
   | //MaybeElse// | -> | **eps**
   |  |  **|**  | ``else`` //IfOrBlock// 
   | //IfOrBlock// | -> | //IfStmt// 
   |  |  **|**  | //Block// 
-  | //ForStmt// | -> | ``for`` //ForClause// //Block// 
   | //ForClause// | -> | //Condition// 
   |  |  **|**  | //SimpleStmt// ``;`` //Condition// ``;`` //SimpleStmt// 
   | //Condition// | -> | //Expr// 
@@ -105,13 +103,14 @@ All other symbols are terminals.
   | //[VarType]// | -> | **eps**
   |  |  **|**  | //VarType// 
   |  |  **|**  | //VarType// ``,`` //[VarType]// 
-  | //Expr6// | -> | //Ident// 
+  | //Expr7// | -> | //Ident// 
   |  |  **|**  | //Integer// 
   |  |  **|**  | ``func`` ``(`` //[Arg]// ``)`` //Type// //Block// 
   |  |  **|**  | ``true`` 
   |  |  **|**  | ``false`` 
-  |  |  **|**  | //Ident// ``(`` //[Expr]// ``)`` 
   |  |  **|**  | ``(`` //Expr// ``)`` 
+  | //Expr6// | -> | //Expr6// ``(`` //[Expr]// ``)`` 
+  |  |  **|**  | //Expr7// 
   | //Expr5// | -> | ``-`` //Expr6// 
   |  |  **|**  | ``!`` //Expr6// 
   |  |  **|**  | //Expr6// 

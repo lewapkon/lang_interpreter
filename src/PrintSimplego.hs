@@ -105,57 +105,46 @@ instance Print Block where
 instance Print Stmt where
   prt i e = case e of
     SimpleStmt simplestmt -> prPrec i 0 (concatD [prt 0 simplestmt, doc (showString ";")])
-    ReturnStmt returnstmt -> prPrec i 0 (concatD [prt 0 returnstmt, doc (showString ";")])
-    BreakStmt breakstmt -> prPrec i 0 (concatD [prt 0 breakstmt, doc (showString ";")])
-    ContinueStmt continuestmt -> prPrec i 0 (concatD [prt 0 continuestmt, doc (showString ";")])
+    ReturnStmt maybeexpr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 maybeexpr, doc (showString ";")])
+    BreakStmt -> prPrec i 0 (concatD [doc (showString "break"), doc (showString ";")])
+    ContinueStmt -> prPrec i 0 (concatD [doc (showString "continue"), doc (showString ";")])
+    PrintStmt expr -> prPrec i 0 (concatD [doc (showString "print"), doc (showString "("), prt 0 expr, doc (showString ")"), doc (showString ";")])
     BlockStmt block -> prPrec i 0 (concatD [prt 0 block])
     IfStmt ifstmt -> prPrec i 0 (concatD [prt 0 ifstmt])
-    ForStmt forstmt -> prPrec i 0 (concatD [prt 0 forstmt])
+    ForStmt forclause block -> prPrec i 0 (concatD [doc (showString "for"), prt 0 forclause, prt 0 block])
   prtList _ [] = (concatD [])
   prtList _ (x:xs) = (concatD [prt 0 x, prt 0 xs])
 instance Print SimpleStmt where
   prt i e = case e of
     EmptySimpleStmt -> prPrec i 0 (concatD [])
-    ExprSimpStmt expr -> prPrec i 0 (concatD [prt 0 expr])
+    ExprSimpleStmt expr -> prPrec i 0 (concatD [prt 0 expr])
     AssSimpleStmt assstmt -> prPrec i 0 (concatD [prt 0 assstmt])
-    DeclSimpleStmt declstmt -> prPrec i 0 (concatD [prt 0 declstmt])
+    DeclSimpleStmt id vartype item -> prPrec i 0 (concatD [doc (showString "var"), prt 0 id, prt 0 vartype, prt 0 item])
 
 instance Print AssStmt where
   prt i e = case e of
     Ass id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "="), prt 0 expr])
     Incr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "++")])
     Decr id -> prPrec i 0 (concatD [prt 0 id, doc (showString "--")])
-    AddAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "+="), prt 0 expr])
-    SubAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "-="), prt 0 expr])
-    MulAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "*="), prt 0 expr])
-    DivAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "/="), prt 0 expr])
-    ModAss id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString "%="), prt 0 expr])
+    AssOp id assop expr -> prPrec i 0 (concatD [prt 0 id, prt 0 assop, prt 0 expr])
 
-instance Print DeclStmt where
+instance Print AssOp where
   prt i e = case e of
-    Decl id type_ item -> prPrec i 0 (concatD [doc (showString "var"), prt 0 id, prt 0 type_, prt 0 item])
+    AddAss -> prPrec i 0 (concatD [doc (showString "+=")])
+    SubAss -> prPrec i 0 (concatD [doc (showString "-=")])
+    MulAss -> prPrec i 0 (concatD [doc (showString "*=")])
+    DivAss -> prPrec i 0 (concatD [doc (showString "/=")])
+    ModAss -> prPrec i 0 (concatD [doc (showString "%=")])
 
 instance Print Item where
   prt i e = case e of
     NoInit -> prPrec i 0 (concatD [])
     Init expr -> prPrec i 0 (concatD [doc (showString "="), prt 0 expr])
 
-instance Print ReturnStmt where
-  prt i e = case e of
-    Ret maybeexpr -> prPrec i 0 (concatD [doc (showString "return"), prt 0 maybeexpr])
-
 instance Print MaybeExpr where
   prt i e = case e of
     MaybeExprYes expr -> prPrec i 0 (concatD [prt 0 expr])
     MaybeExprNo -> prPrec i 0 (concatD [])
-
-instance Print BreakStmt where
-  prt i e = case e of
-    Break -> prPrec i 0 (concatD [doc (showString "break")])
-
-instance Print ContinueStmt where
-  prt i e = case e of
-    Continue -> prPrec i 0 (concatD [doc (showString "continue")])
 
 instance Print IfStmt where
   prt i e = case e of
@@ -171,10 +160,6 @@ instance Print IfOrBlock where
     IfOfIfOrBlock ifstmt -> prPrec i 0 (concatD [prt 0 ifstmt])
     BlockOfIfOrBlock block -> prPrec i 0 (concatD [prt 0 block])
 
-instance Print ForStmt where
-  prt i e = case e of
-    For forclause block -> prPrec i 0 (concatD [doc (showString "for"), prt 0 forclause, prt 0 block])
-
 instance Print ForClause where
   prt i e = case e of
     ForCond condition -> prPrec i 0 (concatD [prt 0 condition])
@@ -188,24 +173,24 @@ instance Print Condition where
 instance Print Type where
   prt i e = case e of
     VarType vartype -> prPrec i 0 (concatD [prt 0 vartype])
-    Void -> prPrec i 0 (concatD [])
+    TVoid -> prPrec i 0 (concatD [])
 
 instance Print VarType where
   prt i e = case e of
-    Int -> prPrec i 0 (concatD [doc (showString "int")])
-    Bool -> prPrec i 0 (concatD [doc (showString "bool")])
-    Fun vartypes type_ -> prPrec i 0 (concatD [doc (showString "func"), doc (showString "("), prt 0 vartypes, doc (showString ")"), prt 0 type_])
+    TInt -> prPrec i 0 (concatD [doc (showString "int")])
+    TBool -> prPrec i 0 (concatD [doc (showString "bool")])
+    TFun vartypes type_ -> prPrec i 0 (concatD [doc (showString "func"), doc (showString "("), prt 0 vartypes, doc (showString ")"), prt 0 type_])
   prtList _ [] = (concatD [])
   prtList _ [x] = (concatD [prt 0 x])
   prtList _ (x:xs) = (concatD [prt 0 x, doc (showString ","), prt 0 xs])
 instance Print Expr where
   prt i e = case e of
-    EVar id -> prPrec i 6 (concatD [prt 0 id])
-    ELitInt n -> prPrec i 6 (concatD [prt 0 n])
-    EFun args type_ block -> prPrec i 6 (concatD [doc (showString "func"), doc (showString "("), prt 0 args, doc (showString ")"), prt 0 type_, prt 0 block])
-    ELitTrue -> prPrec i 6 (concatD [doc (showString "true")])
-    ELitFalse -> prPrec i 6 (concatD [doc (showString "false")])
-    EApp id exprs -> prPrec i 6 (concatD [prt 0 id, doc (showString "("), prt 0 exprs, doc (showString ")")])
+    EVar id -> prPrec i 7 (concatD [prt 0 id])
+    ELitInt n -> prPrec i 7 (concatD [prt 0 n])
+    EFun args type_ block -> prPrec i 7 (concatD [doc (showString "func"), doc (showString "("), prt 0 args, doc (showString ")"), prt 0 type_, prt 0 block])
+    ELitTrue -> prPrec i 7 (concatD [doc (showString "true")])
+    ELitFalse -> prPrec i 7 (concatD [doc (showString "false")])
+    EApp expr exprs -> prPrec i 6 (concatD [prt 6 expr, doc (showString "("), prt 0 exprs, doc (showString ")")])
     ENeg expr -> prPrec i 5 (concatD [doc (showString "-"), prt 6 expr])
     ENot expr -> prPrec i 5 (concatD [doc (showString "!"), prt 6 expr])
     EMul expr1 mulop expr2 -> prPrec i 4 (concatD [prt 4 expr1, prt 0 mulop, prt 5 expr2])

@@ -27,48 +27,40 @@ transBlock x = case x of
 transStmt :: Stmt -> Result
 transStmt x = case x of
   SimpleStmt simplestmt -> failure x
-  ReturnStmt returnstmt -> failure x
-  BreakStmt breakstmt -> failure x
-  ContinueStmt continuestmt -> failure x
+  ReturnStmt maybeexpr -> failure x
+  BreakStmt -> failure x
+  ContinueStmt -> failure x
+  PrintStmt expr -> failure x
   BlockStmt block -> failure x
   IfStmt ifstmt -> failure x
-  ForStmt forstmt -> failure x
+  ForStmt forclause block -> failure x
 transSimpleStmt :: SimpleStmt -> Result
 transSimpleStmt x = case x of
   EmptySimpleStmt -> failure x
-  ExprSimpStmt expr -> failure x
+  ExprSimpleStmt expr -> failure x
   AssSimpleStmt assstmt -> failure x
-  DeclSimpleStmt declstmt -> failure x
+  DeclSimpleStmt ident vartype item -> failure x
 transAssStmt :: AssStmt -> Result
 transAssStmt x = case x of
   Ass ident expr -> failure x
   Incr ident -> failure x
   Decr ident -> failure x
-  AddAss ident expr -> failure x
-  SubAss ident expr -> failure x
-  MulAss ident expr -> failure x
-  DivAss ident expr -> failure x
-  ModAss ident expr -> failure x
-transDeclStmt :: DeclStmt -> Result
-transDeclStmt x = case x of
-  Decl ident type_ item -> failure x
+  AssOp ident assop expr -> failure x
+transAssOp :: AssOp -> Result
+transAssOp x = case x of
+  AddAss -> failure x
+  SubAss -> failure x
+  MulAss -> failure x
+  DivAss -> failure x
+  ModAss -> failure x
 transItem :: Item -> Result
 transItem x = case x of
   NoInit -> failure x
   Init expr -> failure x
-transReturnStmt :: ReturnStmt -> Result
-transReturnStmt x = case x of
-  Ret maybeexpr -> failure x
 transMaybeExpr :: MaybeExpr -> Result
 transMaybeExpr x = case x of
   MaybeExprYes expr -> failure x
   MaybeExprNo -> failure x
-transBreakStmt :: BreakStmt -> Result
-transBreakStmt x = case x of
-  Break -> failure x
-transContinueStmt :: ContinueStmt -> Result
-transContinueStmt x = case x of
-  Continue -> failure x
 transIfStmt :: IfStmt -> Result
 transIfStmt x = case x of
   If expr block maybeelse -> failure x
@@ -80,9 +72,6 @@ transIfOrBlock :: IfOrBlock -> Result
 transIfOrBlock x = case x of
   IfOfIfOrBlock ifstmt -> failure x
   BlockOfIfOrBlock block -> failure x
-transForStmt :: ForStmt -> Result
-transForStmt x = case x of
-  For forclause block -> failure x
 transForClause :: ForClause -> Result
 transForClause x = case x of
   ForCond condition -> failure x
@@ -94,12 +83,12 @@ transCondition x = case x of
 transType :: Type -> Result
 transType x = case x of
   VarType vartype -> failure x
-  Void -> failure x
+  TVoid -> failure x
 transVarType :: VarType -> Result
 transVarType x = case x of
-  Int -> failure x
-  Bool -> failure x
-  Fun vartypes type_ -> failure x
+  TInt -> failure x
+  TBool -> failure x
+  TFun vartypes type_ -> failure x
 transExpr :: Expr -> Result
 transExpr x = case x of
   EVar ident -> failure x
@@ -107,7 +96,7 @@ transExpr x = case x of
   EFun args type_ block -> failure x
   ELitTrue -> failure x
   ELitFalse -> failure x
-  EApp ident exprs -> failure x
+  EApp expr exprs -> failure x
   ENeg expr -> failure x
   ENot expr -> failure x
   EMul expr1 mulop expr2 -> failure x

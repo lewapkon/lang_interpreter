@@ -19,40 +19,34 @@ Block.     Block ::= "{" [Stmt] "}" ;
 separator  Stmt "" ;
 
 SimpleStmt.   Stmt ::= SimpleStmt ";" ;
-ReturnStmt.   Stmt ::= ReturnStmt ";" ;
-BreakStmt.    Stmt ::= BreakStmt ";" ;
-ContinueStmt. Stmt ::= ContinueStmt ";" ;
+ReturnStmt.   Stmt ::= "return" MaybeExpr ";" ;
+BreakStmt.    Stmt ::= "break" ";" ;
+ContinueStmt. Stmt ::= "continue" ";" ;
+PrintStmt.    Stmt ::= "print" "(" Expr ")" ";" ;
 BlockStmt.    Stmt ::= Block ;
 IfStmt.       Stmt ::= IfStmt ;
-ForStmt.      Stmt ::= ForStmt ;
+ForStmt.      Stmt ::= "for" ForClause Block ;
 
 EmptySimpleStmt.    SimpleStmt ::= ;
-ExprSimpStmt.       SimpleStmt ::= Expr ;
+ExprSimpleStmt.     SimpleStmt ::= Expr ;
 AssSimpleStmt.      SimpleStmt ::= AssStmt ;
-DeclSimpleStmt.     SimpleStmt ::= DeclStmt ;
+DeclSimpleStmt.     SimpleStmt ::= "var" Ident VarType Item ;
 
 Ass.       AssStmt ::= Ident "=" Expr ;
 Incr.      AssStmt ::= Ident "++" ;
 Decr.      AssStmt ::= Ident "--" ;
-AddAss.    AssStmt ::= Ident "+=" Expr ;
-SubAss.    AssStmt ::= Ident "-=" Expr ;
-MulAss.    AssStmt ::= Ident "*=" Expr ;
-DivAss.    AssStmt ::= Ident "/=" Expr ;
-ModAss.    AssStmt ::= Ident "%=" Expr ;
-
-Decl.      DeclStmt ::= "var" Ident Type Item ;
+AssOp.     AssStmt ::= Ident AssOp Expr ;
+AddAss.    AssOp   ::= "+=" ;
+SubAss.    AssOp   ::= "-=" ;
+MulAss.    AssOp   ::= "*=" ;
+DivAss.    AssOp   ::= "/=" ;
+ModAss.    AssOp   ::= "%=" ;
 
 NoInit.    Item ::= ;
 Init.      Item ::= "=" Expr ;
 
-Ret.       ReturnStmt ::= "return" MaybeExpr ;
-
 MaybeExprYes. MaybeExpr ::= Expr ;
 MaybeExprNo.  MaybeExpr ::= ;
-
-Break.     BreakStmt ::= "break" ;
-
-Continue.  ContinueStmt ::= "continue" ;
 
 If.        IfStmt ::= "if" Expr Block MaybeElse;
 
@@ -61,8 +55,6 @@ Else.      MaybeElse ::= "else" IfOrBlock;
 
 IfOfIfOrBlock.    IfOrBlock ::= IfStmt ;
 BlockOfIfOrBlock. IfOrBlock ::= Block ;
-
-For.       ForStmt ::= "for" ForClause Block ;
 
 ForCond.   ForClause ::= Condition ;
 ForFull.   ForClause ::= SimpleStmt ";" Condition ";" SimpleStmt ;
@@ -73,20 +65,21 @@ TrueCond.  Condition ::= ;
 -- Types ---------------------------------------------------
 
 VarType.   Type ::= VarType ;
-Void.      Type ::= ;
-Int.       VarType ::= "int" ;
-Bool.      VarType ::= "bool" ;
-Fun.       VarType ::= "func" "(" [VarType] ")" Type ;
+TVoid.     Type ::= ;
+TInt.      VarType ::= "int" ;
+TBool.     VarType ::= "bool" ;
+TFun.      VarType ::= "func" "(" [VarType] ")" Type ;
 separator  VarType "," ;
 
 -- Expressions ---------------------------------------------
 
-EVar.      Expr6 ::= Ident ;
-ELitInt.   Expr6 ::= Integer ;
-EFun.      Expr6 ::= "func" "(" [Arg] ")" Type Block ;
-ELitTrue.  Expr6 ::= "true" ;
-ELitFalse. Expr6 ::= "false" ;
-EApp.      Expr6 ::= Ident "(" [Expr] ")" ;
+EVar.      Expr7 ::= Ident ;
+ELitInt.   Expr7 ::= Integer ;
+EFun.      Expr7 ::= "func" "(" [Arg] ")" Type Block ;
+ELitTrue.  Expr7 ::= "true" ;
+ELitFalse. Expr7 ::= "false" ;
+
+EApp.      Expr6 ::= Expr6 "(" [Expr] ")" ;
 
 ENeg.      Expr5 ::= "-" Expr6 ;
 ENot.      Expr5 ::= "!" Expr6 ;
@@ -101,7 +94,7 @@ EAnd.      Expr1 ::= Expr2 "&&" Expr1 ;
 
 EOr.       Expr ::= Expr1 "||" Expr ;
 
-coercions  Expr 6 ;
+coercions  Expr 7 ;
 
 separator  Expr "," ;
 

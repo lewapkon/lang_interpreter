@@ -22,48 +22,33 @@ data Block = Block [Stmt]
 
 data Stmt
     = SimpleStmt SimpleStmt
-    | ReturnStmt ReturnStmt
-    | BreakStmt BreakStmt
-    | ContinueStmt ContinueStmt
+    | ReturnStmt MaybeExpr
+    | BreakStmt
+    | ContinueStmt
+    | PrintStmt Expr
     | BlockStmt Block
     | IfStmt IfStmt
-    | ForStmt ForStmt
+    | ForStmt ForClause Block
   deriving (Eq, Ord, Show, Read)
 
 data SimpleStmt
     = EmptySimpleStmt
-    | ExprSimpStmt Expr
+    | ExprSimpleStmt Expr
     | AssSimpleStmt AssStmt
-    | DeclSimpleStmt DeclStmt
+    | DeclSimpleStmt Ident VarType Item
   deriving (Eq, Ord, Show, Read)
 
 data AssStmt
-    = Ass Ident Expr
-    | Incr Ident
-    | Decr Ident
-    | AddAss Ident Expr
-    | SubAss Ident Expr
-    | MulAss Ident Expr
-    | DivAss Ident Expr
-    | ModAss Ident Expr
+    = Ass Ident Expr | Incr Ident | Decr Ident | AssOp Ident AssOp Expr
   deriving (Eq, Ord, Show, Read)
 
-data DeclStmt = Decl Ident Type Item
+data AssOp = AddAss | SubAss | MulAss | DivAss | ModAss
   deriving (Eq, Ord, Show, Read)
 
 data Item = NoInit | Init Expr
   deriving (Eq, Ord, Show, Read)
 
-data ReturnStmt = Ret MaybeExpr
-  deriving (Eq, Ord, Show, Read)
-
 data MaybeExpr = MaybeExprYes Expr | MaybeExprNo
-  deriving (Eq, Ord, Show, Read)
-
-data BreakStmt = Break
-  deriving (Eq, Ord, Show, Read)
-
-data ContinueStmt = Continue
   deriving (Eq, Ord, Show, Read)
 
 data IfStmt = If Expr Block MaybeElse
@@ -75,9 +60,6 @@ data MaybeElse = NoElse | Else IfOrBlock
 data IfOrBlock = IfOfIfOrBlock IfStmt | BlockOfIfOrBlock Block
   deriving (Eq, Ord, Show, Read)
 
-data ForStmt = For ForClause Block
-  deriving (Eq, Ord, Show, Read)
-
 data ForClause
     = ForCond Condition | ForFull SimpleStmt Condition SimpleStmt
   deriving (Eq, Ord, Show, Read)
@@ -85,10 +67,10 @@ data ForClause
 data Condition = ExprCond Expr | TrueCond
   deriving (Eq, Ord, Show, Read)
 
-data Type = VarType VarType | Void
+data Type = VarType VarType | TVoid
   deriving (Eq, Ord, Show, Read)
 
-data VarType = Int | Bool | Fun [VarType] Type
+data VarType = TInt | TBool | TFun [VarType] Type
   deriving (Eq, Ord, Show, Read)
 
 data Expr
@@ -97,7 +79,7 @@ data Expr
     | EFun [Arg] Type Block
     | ELitTrue
     | ELitFalse
-    | EApp Ident [Expr]
+    | EApp Expr [Expr]
     | ENeg Expr
     | ENot Expr
     | EMul Expr MulOp Expr
