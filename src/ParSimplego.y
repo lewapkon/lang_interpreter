@@ -31,29 +31,30 @@ import ErrM
   '-=' { PT _ (TS _ 16) }
   '/' { PT _ (TS _ 17) }
   '/=' { PT _ (TS _ 18) }
-  ';' { PT _ (TS _ 19) }
-  '<' { PT _ (TS _ 20) }
-  '<=' { PT _ (TS _ 21) }
-  '=' { PT _ (TS _ 22) }
-  '==' { PT _ (TS _ 23) }
-  '>' { PT _ (TS _ 24) }
-  '>=' { PT _ (TS _ 25) }
-  'bool' { PT _ (TS _ 26) }
-  'break' { PT _ (TS _ 27) }
-  'continue' { PT _ (TS _ 28) }
-  'else' { PT _ (TS _ 29) }
-  'false' { PT _ (TS _ 30) }
-  'for' { PT _ (TS _ 31) }
-  'func' { PT _ (TS _ 32) }
-  'if' { PT _ (TS _ 33) }
-  'int' { PT _ (TS _ 34) }
-  'print' { PT _ (TS _ 35) }
-  'return' { PT _ (TS _ 36) }
-  'true' { PT _ (TS _ 37) }
-  'var' { PT _ (TS _ 38) }
-  '{' { PT _ (TS _ 39) }
-  '||' { PT _ (TS _ 40) }
-  '}' { PT _ (TS _ 41) }
+  ':=' { PT _ (TS _ 19) }
+  ';' { PT _ (TS _ 20) }
+  '<' { PT _ (TS _ 21) }
+  '<=' { PT _ (TS _ 22) }
+  '=' { PT _ (TS _ 23) }
+  '==' { PT _ (TS _ 24) }
+  '>' { PT _ (TS _ 25) }
+  '>=' { PT _ (TS _ 26) }
+  'bool' { PT _ (TS _ 27) }
+  'break' { PT _ (TS _ 28) }
+  'continue' { PT _ (TS _ 29) }
+  'else' { PT _ (TS _ 30) }
+  'false' { PT _ (TS _ 31) }
+  'for' { PT _ (TS _ 32) }
+  'func' { PT _ (TS _ 33) }
+  'if' { PT _ (TS _ 34) }
+  'int' { PT _ (TS _ 35) }
+  'print' { PT _ (TS _ 36) }
+  'return' { PT _ (TS _ 37) }
+  'true' { PT _ (TS _ 38) }
+  'var' { PT _ (TS _ 39) }
+  '{' { PT _ (TS _ 40) }
+  '||' { PT _ (TS _ 41) }
+  '}' { PT _ (TS _ 42) }
 
 L_ident  { PT _ (TV $$) }
 L_integ  { PT _ (TI $$) }
@@ -94,6 +95,7 @@ SimpleStmt : {- empty -} { AbsSimplego.EmptySimpleStmt }
            | Expr { AbsSimplego.ExprSimpleStmt $1 }
            | AssStmt { AbsSimplego.AssSimpleStmt $1 }
            | 'var' Ident VarType Item { AbsSimplego.DeclSimpleStmt $2 $3 $4 }
+           | Ident ':=' Expr { AbsSimplego.ShortDeclSimpleStmt $1 $3 }
 AssStmt :: { AssStmt }
 AssStmt : Ident '=' Expr { AbsSimplego.Ass $1 $3 }
         | Ident '++' { AbsSimplego.Incr $1 }

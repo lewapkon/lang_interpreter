@@ -1,7 +1,10 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Main (main) where
 
 import qualified Data.Map as M
-import Control.Exception (Exception, catch, throw)
+import qualified Control.Monad
+import Control.Exception (Handler(..), catch, catches)
 import Control.Monad.State (execStateT)
 
 import System.Environment (getArgs)
@@ -12,6 +15,7 @@ import AbsSimplego
 import Interpret
 import Exception
 import ErrM
+import TypeCheck
 
 main :: IO ()
 main = do
@@ -25,5 +29,7 @@ main = do
 
 runProgram :: Program -> IO ()
 runProgram p =
-    (print =<< execStateT (execProgram p) (M.empty, M.empty))
-    `catch` (\e -> putStrLn $ "Runtime exception: " ++ show (e::RuntimeException))
+    Control.Monad.void (execStateT (typeCheckProgram p) M.empty >>
+        execStateT (execProgram p) (M.empty, M.empty))
+    `catches` [Handler (\ (e :: RuntimeException) -> putStrLn ("Runtime exception: " ++ show e)),
+               Handler (\ (e :: TypeException) -> putStrLn ("Type exception: " ++ show e))]

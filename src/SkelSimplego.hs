@@ -40,6 +40,7 @@ transSimpleStmt x = case x of
   ExprSimpleStmt expr -> failure x
   AssSimpleStmt assstmt -> failure x
   DeclSimpleStmt ident vartype item -> failure x
+  ShortDeclSimpleStmt ident expr -> failure x
 transAssStmt :: AssStmt -> Result
 transAssStmt x = case x of
   Ass ident expr -> failure x

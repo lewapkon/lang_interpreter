@@ -34,12 +34,13 @@ The reserved words used in simplego are the following:
 
 The symbols used in simplego are the following:
   | ( | ) | , | {
-  | } | ; | = | ++
-  | -- | += | -= | *=
-  | /= | %= | - | !
-  | && | || | + | *
-  | / | % | < | <=
-  | > | >= | == | !=
+  | } | ; | := | =
+  | ++ | -- | += | -=
+  | *= | /= | %= | -
+  | ! | && | || | +
+  | * | / | % | <
+  | <= | > | >= | ==
+  | != |  |  | 
 
 ===Comments===
 Single-line comments begin with //.Multiple-line comments are  enclosed with /* and */.
@@ -73,6 +74,7 @@ All other symbols are terminals.
   |  |  **|**  | //Expr// 
   |  |  **|**  | //AssStmt// 
   |  |  **|**  | ``var`` //Ident// //VarType// //Item// 
+  |  |  **|**  | //Ident// ``:=`` //Expr// 
   | //AssStmt// | -> | //Ident// ``=`` //Expr// 
   |  |  **|**  | //Ident// ``++`` 
   |  |  **|**  | //Ident// ``--`` 

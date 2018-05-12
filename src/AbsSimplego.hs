@@ -36,6 +36,7 @@ data SimpleStmt
     | ExprSimpleStmt Expr
     | AssSimpleStmt AssStmt
     | DeclSimpleStmt Ident VarType Item
+    | ShortDeclSimpleStmt Ident Expr
   deriving (Eq, Ord, Show, Read)
 
 data AssStmt

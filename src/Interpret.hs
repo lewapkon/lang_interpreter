@@ -14,12 +14,12 @@ import Exception
 
 type Loc = Int
 type Env = M.Map String Loc
-data StoreObject = OInt Integer | OBool Bool | OFun Env [Arg] Type Block | OVoid deriving (Show)
+data StoreObject = OInt Integer | OBool Bool | OFun Env [Arg] Type Block | OVoid deriving (Show, Eq)
 type Store = M.Map Loc StoreObject
 type State = (Env, Store)
 type SIO a = StateT State IO a
 
-data StmtResult = Returned StoreObject | Broken | Continued | Normal
+data StmtResult = Returned StoreObject | Broken | Continued | Normal deriving (Eq)
 
 alloc :: SIO Loc
 alloc = do
@@ -42,7 +42,7 @@ modifyStore f = modify $ Control.Arrow.second f
 getLoc :: String -> SIO Loc
 getLoc name = do
     e <- getEnv
-    return $ fromMaybe (throw (name ++ " is undefined")) (M.lookup name e)
+    return $ fromMaybe (throwRuntime (name ++ " is undefined")) (M.lookup name e)
 
 getVariable :: String -> SIO StoreObject
 getVariable name = do
@@ -69,8 +69,7 @@ boolFromObject (OBool b) = b
 
 execProgram :: Program -> SIO ()
 execProgram (Program topDefs) = do
-    let env = fst $ foldl insertIdent (M.empty, 0) topDefs
-    modifyEnv $ const env
+    modifyEnv $ const $ fst $ foldl insertIdent (M.empty, 0) topDefs
     mapM_ addTopDef topDefs
     runMain
     return ()
@@ -103,21 +102,24 @@ interpret (PrintStmt e) = do
     liftIO $ putStrLn $ case v of
         OInt n -> show n
         OBool b -> show b
-        _ -> throw $ "cannot print " ++ show v
     return Normal
 
 interpret (BlockStmt (Block [])) = return Normal
 interpret (BlockStmt (Block (x : xs))) = do
     res <- interpret x
-    case res of
-        Normal -> interpret $ BlockStmt $ Block xs
-        _ -> return res
+    if res == Normal
+    then interpret $ BlockStmt $ Block xs
+    else return res
 
 interpret (IfStmt (If e block maybeElse)) = do
     v <- eval e
-    case v of OBool b -> if b then interpret (BlockStmt block) else interpretMaybeElse maybeElse
+    case v of
+        OBool b ->
+            if b then interpret (BlockStmt block)
+            else interpretMaybeElse maybeElse
 
-interpret (ForStmt (ForCond cond) block) = interpret (ForStmt (ForFull EmptySimpleStmt cond EmptySimpleStmt) block)
+interpret (ForStmt (ForCond cond) block) =
+    interpret (ForStmt (ForFull EmptySimpleStmt cond EmptySimpleStmt) block)
 interpret (ForStmt (ForFull preStmt cond postStmt) block) = do
     e <- getEnv
     interpretSimpleStmt preStmt
@@ -157,7 +159,11 @@ interpretSimpleStmt (DeclSimpleStmt (Ident name) declType NoInit) =
     where init TInt = ELitInt 0
           init TBool = ELitFalse
           init (TFun argTypes returnType) = EFun (map (Arg (Ident "")) argTypes) returnType $ Block []
-interpretSimpleStmt (DeclSimpleStmt (Ident name) declType (Init e)) = do
+interpretSimpleStmt (DeclSimpleStmt (Ident name) _ (Init e)) = do
+    v <- eval e
+    declareVariable name v
+
+interpretSimpleStmt (ShortDeclSimpleStmt (Ident name) e) = do
     v <- eval e
     declareVariable name v
 
@@ -187,8 +193,6 @@ eval (EApp fExpr exprs) = do
     fun <- eval fExpr
     case fun of
         OFun env args returnType block -> do
-            Control.Monad.when (length exprs /= length args)
-                (throw "invalid number of function call arguments" )
             oldEnv <- getEnv
             vals <- mapM eval exprs
             modifyEnv (const env)
@@ -198,9 +202,9 @@ eval (EApp fExpr exprs) = do
             case res of
                 Returned v -> return v
                 Normal -> return $ defaultValue returnType
-                Broken -> throw "break is not in a loop"
-                Continued -> throw "continue is not in a loop"
-        _ -> throw ("cannot call " ++ show fExpr)
+                Broken -> throwRuntime "break is not in a loop"
+                Continued -> throwRuntime "continue is not in a loop"
+        _ -> throwRuntime ("cannot call " ++ show fExpr)
     where defaultValue (VarType TInt) = OInt 0
           defaultValue (VarType TBool) = OBool False
           defaultValue (VarType (TFun argTypes returnType)) =

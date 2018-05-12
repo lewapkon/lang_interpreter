@@ -120,6 +120,7 @@ instance Print SimpleStmt where
     ExprSimpleStmt expr -> prPrec i 0 (concatD [prt 0 expr])
     AssSimpleStmt assstmt -> prPrec i 0 (concatD [prt 0 assstmt])
     DeclSimpleStmt id vartype item -> prPrec i 0 (concatD [doc (showString "var"), prt 0 id, prt 0 vartype, prt 0 item])
+    ShortDeclSimpleStmt id expr -> prPrec i 0 (concatD [prt 0 id, doc (showString ":="), prt 0 expr])
 
 instance Print AssStmt where
   prt i e = case e of
