@@ -13,8 +13,8 @@ import Exception
 type TypeEnv = M.Map String (Type LineCol)
 type TIO a = StateT TypeEnv IO a
 
-find :: String -> TIO (Type LineCol)
-find name = gets (fromMaybe (throwType ("undefined variable " ++ name)) . M.lookup name)
+find :: String -> LineCol -> TIO (Type LineCol)
+find name loc = gets (fromMaybe (throwType ("undefined variable " ++ name) loc) . M.lookup name)
 
 declare :: String -> Type LineCol -> TIO ()
 declare name t = Control.Monad.void (modify (M.insert name t))
@@ -30,6 +30,10 @@ inLocalEnv m = do
     oldEnv <- get
     m
     put oldEnv
+
+locFromType :: Type LineCol -> LineCol
+locFromType (TVoid loc) = loc
+locFromType (VarType loc _) = loc
 
 typeCheckProgram :: Program LineCol -> TIO ()
 typeCheckProgram (Program _ topDefs) = do
@@ -48,20 +52,20 @@ typeCheckFn (FnDef _ _ args returnType block) = inLocalEnv $ do
 
 typeCheckStmt :: Stmt LineCol -> Type LineCol -> TIO ()
 typeCheckStmt (SimpleStmt _ stmt) _ = typeCheckSimpleStmt stmt
-typeCheckStmt (ReturnStmt _ MaybeExprNo{}) returnType =
+typeCheckStmt (ReturnStmt loc MaybeExprNo{}) returnType =
     case returnType of
         TVoid _ -> return ()
-        _ -> throwType "expected function to return value"
+        _ -> throwType "expected function to return value" loc
 typeCheckStmt (ReturnStmt _ (MaybeExprYes _ e)) returnType = expectExprType returnType e
 typeCheckStmt BreakStmt{} _ = return ()
 typeCheckStmt ContinueStmt{} _ = return ()
-typeCheckStmt (PrintStmt _ e) _ = do
+typeCheckStmt (PrintStmt loc e) _ = do
     t <- typeCheckExpr e
     case t of
         VarType _ TInt{} -> return ()
         VarType _ TBool{} -> return ()
-        VarType _ TFun{} -> throwType "cannot print functions"
-        TVoid{} -> throwType "cannot print void values"
+        VarType _ TFun{} -> throwType "cannot print functions" loc
+        TVoid{} -> throwType "cannot print void values" loc
 typeCheckStmt (BlockStmt _ (Block _ [])) _ = return ()
 typeCheckStmt (BlockStmt _ (Block _ (x : xs))) returnType = inLocalEnv $ do
     typeCheckStmt x returnType
@@ -77,8 +81,8 @@ typeCheckStmt (ForStmt _ clause block) returnType = inLocalEnv $ do
 typeCheckSimpleStmt :: SimpleStmt LineCol -> TIO ()
 typeCheckSimpleStmt (EmptySimpleStmt _) = return ()
 typeCheckSimpleStmt (ExprSimpleStmt _ e) = Control.Monad.void (typeCheckExpr e)
-typeCheckSimpleStmt (AssSimpleStmt _ (Ass _ (Ident name) e)) = do
-    expectedType <- find name
+typeCheckSimpleStmt (AssSimpleStmt _ (Ass loc (Ident name) e)) = do
+    expectedType <- find name loc
     expectExprType expectedType e
 typeCheckSimpleStmt (AssSimpleStmt _ (AssOp _ ident _ e)) = do
     expectExprVarType (TInt Nothing) (EVar Nothing ident)
@@ -97,17 +101,17 @@ typeCheckSimpleStmt (ShortDeclSimpleStmt _ (Ident name) e) = do
     declare name t
 
 typeCheckExpr :: Expr LineCol -> TIO (Type LineCol)
-typeCheckExpr (EVar _ (Ident name)) = find name
-typeCheckExpr (ELitInt _ _) = return (VarType Nothing (TInt Nothing))
-typeCheckExpr (EFun _ args returnType block) = do
+typeCheckExpr (EVar loc (Ident name)) = find name loc
+typeCheckExpr (ELitInt loc _) = return (VarType loc (TInt loc))
+typeCheckExpr (EFun loc args returnType block) = do
     oldEnv <- get
     declareArgs args
-    typeCheckStmt (BlockStmt Nothing block) returnType
+    typeCheckStmt (BlockStmt loc block) returnType
     put oldEnv
-    return (VarType Nothing (TFun Nothing (typesFromArgs args) returnType))
-typeCheckExpr ELitTrue{} = return (VarType Nothing (TBool Nothing))
-typeCheckExpr ELitFalse{} = return (VarType Nothing (TBool Nothing))
-typeCheckExpr (EApp _ e args) = do
+    return (VarType loc (TFun loc (typesFromArgs args) returnType))
+typeCheckExpr (ELitTrue loc) = return (VarType loc (TBool loc))
+typeCheckExpr (ELitFalse loc) = return (VarType loc (TBool loc))
+typeCheckExpr (EApp loc e args) = do
     t <- typeCheckExpr e
     appliedArgTypes <- mapM typeCheckExpr args
     let appliedArgVarTypes = map varTypeFromType appliedArgTypes
@@ -115,38 +119,38 @@ typeCheckExpr (EApp _ e args) = do
         VarType _ (TFun _ argTypes returnType) ->
             if argTypes == appliedArgVarTypes
                 then return returnType
-                else throwType "invalid types applied to function"
-        _ -> throwType "tried to call not a function"
+                else throwType "invalid types applied to function" loc
+        _ -> throwType "tried to call not a function" loc
     where
         varTypeFromType :: Type LineCol -> VarType LineCol
-        varTypeFromType TVoid{} = throwType "unexpected void value"
+        varTypeFromType (TVoid loc) = throwType "unexpected void value" loc
         varTypeFromType (VarType _ t) = t
-
-typeCheckExpr (ENeg _ e) = do
+typeCheckExpr (ENeg loc e) = do
     expectExprVarType (TInt Nothing) e
-    return (VarType Nothing (TInt Nothing))
-typeCheckExpr (ENot _ e) = do
+    return (VarType loc (TInt loc))
+typeCheckExpr (ENot loc e) = do
     expectExprVarType (TBool Nothing) e
-    return (VarType Nothing (TBool Nothing))
-typeCheckExpr (EMul _ e1 _ e2) = do
+    return (VarType loc (TBool loc))
+typeCheckExpr (EMul loc e1 _ e2) = do
     expectExprVarType (TInt Nothing) e1
     expectExprVarType (TInt Nothing) e2
-    return (VarType Nothing (TInt Nothing))
-typeCheckExpr (EAdd _ e1 _ e2) = typeCheckExpr (EMul Nothing e1 (TimesOp Nothing) e2)
-typeCheckExpr (ERel _ e1 _ e2) = do
+    return (VarType loc (TInt loc))
+typeCheckExpr (EAdd loc e1 _ e2) = typeCheckExpr (EMul loc e1 (TimesOp loc) e2)
+typeCheckExpr (ERel loc e1 _ e2) = do
     expectExprVarType (TInt Nothing) e1
     expectExprVarType (TInt Nothing) e2
-    return (VarType Nothing (TBool Nothing))
-typeCheckExpr (EAnd _ e1 e2) = do
+    return (VarType loc (TBool loc))
+typeCheckExpr (EAnd loc e1 e2) = do
     expectExprVarType (TBool Nothing) e1
     expectExprVarType (TBool Nothing) e2
-    return (VarType Nothing (TBool Nothing))
-typeCheckExpr (EOr _ e1 e2) = typeCheckExpr (EAnd Nothing e1 e2)
+    return (VarType loc (TBool loc))
+typeCheckExpr (EOr loc e1 e2) = typeCheckExpr (EAnd loc e1 e2)
 
 expectExprType :: Type LineCol -> Expr LineCol -> TIO ()
 expectExprType expectedType e = do
     t <- typeCheckExpr e
-    if t == expectedType then return () else throwType "expected different type"
+    let loc = locFromType t
+    if t == expectedType then return () else throwType "expected different type" loc
 
 expectExprVarType :: VarType LineCol -> Expr LineCol -> TIO ()
 expectExprVarType t = expectExprType (VarType Nothing t)
