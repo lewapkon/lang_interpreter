@@ -16,6 +16,7 @@ import Interpret
 import Exception
 import ErrM
 import TypeCheck
+import Common
 
 main :: IO ()
 main = do
@@ -27,7 +28,7 @@ main = do
                 Bad s -> error s
                 Ok tree -> runProgram tree
 
-runProgram :: Program -> IO ()
+runProgram :: Program LineCol -> IO ()
 runProgram p =
     Control.Monad.void (execStateT (typeCheckProgram p) M.empty >>
         execStateT (execProgram p) (M.empty, M.empty))

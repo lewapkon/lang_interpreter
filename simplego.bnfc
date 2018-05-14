@@ -27,10 +27,11 @@ BlockStmt.    Stmt ::= Block ;
 IfStmt.       Stmt ::= IfStmt ;
 ForStmt.      Stmt ::= "for" ForClause Block ;
 
-EmptySimpleStmt.    SimpleStmt ::= ;
-ExprSimpleStmt.     SimpleStmt ::= Expr ;
-AssSimpleStmt.      SimpleStmt ::= AssStmt ;
-DeclSimpleStmt.     SimpleStmt ::= "var" Ident VarType Item ;
+EmptySimpleStmt.     SimpleStmt ::= ;
+ExprSimpleStmt.      SimpleStmt ::= Expr ;
+AssSimpleStmt.       SimpleStmt ::= AssStmt ;
+DeclSimpleStmt.      SimpleStmt ::= "var" Ident VarType Item ;
+ShortDeclSimpleStmt. SimpleStmt ::= Ident ":=" Expr ;
 
 Ass.       AssStmt ::= Ident "=" Expr ;
 Incr.      AssStmt ::= Ident "++" ;

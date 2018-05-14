@@ -26,7 +26,7 @@ func scope() func() int {
 }
 
 // Closures: don't mutate outer vars, instead redefine them!
-func outer() func() int {
+func outer() int {
 	var outer_var int = 2;
 	var inner func() int = func() int {
 		outer_var += 99; // attempt to mutate outer_var from outer scope
@@ -38,6 +38,9 @@ func outer() func() int {
 }
 
 func conditions() {
+	var y int = true;
+	x := 5;
+
 	// Basic one
 	if x > 0 {
 		print(0);

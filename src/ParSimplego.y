@@ -8,10 +8,10 @@ import ErrM
 
 }
 
-%name pProgram Program
 -- no lexer declaration
 %monad { Err } { thenM } { returnM }
 %tokentype {Token}
+%name pProgram_internal Program
 %token
   '!' { PT _ (TS _ 1) }
   '!=' { PT _ (TS _ 2) }
@@ -56,132 +56,424 @@ import ErrM
   '||' { PT _ (TS _ 41) }
   '}' { PT _ (TS _ 42) }
 
-L_ident  { PT _ (TV $$) }
-L_integ  { PT _ (TI $$) }
-
+  L_ident {PT _ (TV _)}
+  L_integ {PT _ (TI _)}
 
 %%
 
-Ident   :: { Ident }   : L_ident  { Ident $1 }
-Integer :: { Integer } : L_integ  { (read ( $1)) :: Integer }
+Ident :: {
+  (Maybe (Int, Int), Ident)
+}
+: L_ident {
+  (Just (tokenLineCol $1), Ident (prToken $1)) 
+}
 
-Program :: { Program }
-Program : ListTopDef { AbsSimplego.Program $1 }
-TopDef :: { TopDef }
-TopDef : 'func' Ident '(' ListArg ')' Type Block { AbsSimplego.FnDef $2 $4 $6 $7 }
-ListTopDef :: { [TopDef] }
-ListTopDef : TopDef { (:[]) $1 } | TopDef ListTopDef { (:) $1 $2 }
-Arg :: { Arg }
-Arg : Ident VarType { AbsSimplego.Arg $1 $2 }
-ListArg :: { [Arg] }
-ListArg : {- empty -} { [] }
-        | Arg { (:[]) $1 }
-        | Arg ',' ListArg { (:) $1 $3 }
-Block :: { Block }
-Block : '{' ListStmt '}' { AbsSimplego.Block (reverse $2) }
-ListStmt :: { [Stmt] }
-ListStmt : {- empty -} { [] } | ListStmt Stmt { flip (:) $1 $2 }
-Stmt :: { Stmt }
-Stmt : SimpleStmt ';' { AbsSimplego.SimpleStmt $1 }
-     | 'return' MaybeExpr ';' { AbsSimplego.ReturnStmt $2 }
-     | 'break' ';' { AbsSimplego.BreakStmt }
-     | 'continue' ';' { AbsSimplego.ContinueStmt }
-     | 'print' '(' Expr ')' ';' { AbsSimplego.PrintStmt $3 }
-     | Block { AbsSimplego.BlockStmt $1 }
-     | IfStmt { AbsSimplego.IfStmt $1 }
-     | 'for' ForClause Block { AbsSimplego.ForStmt $2 $3 }
-SimpleStmt :: { SimpleStmt }
-SimpleStmt : {- empty -} { AbsSimplego.EmptySimpleStmt }
-           | Expr { AbsSimplego.ExprSimpleStmt $1 }
-           | AssStmt { AbsSimplego.AssSimpleStmt $1 }
-           | 'var' Ident VarType Item { AbsSimplego.DeclSimpleStmt $2 $3 $4 }
-           | Ident ':=' Expr { AbsSimplego.ShortDeclSimpleStmt $1 $3 }
-AssStmt :: { AssStmt }
-AssStmt : Ident '=' Expr { AbsSimplego.Ass $1 $3 }
-        | Ident '++' { AbsSimplego.Incr $1 }
-        | Ident '--' { AbsSimplego.Decr $1 }
-        | Ident AssOp Expr { AbsSimplego.AssOp $1 $2 $3 }
-AssOp :: { AssOp }
-AssOp : '+=' { AbsSimplego.AddAss }
-      | '-=' { AbsSimplego.SubAss }
-      | '*=' { AbsSimplego.MulAss }
-      | '/=' { AbsSimplego.DivAss }
-      | '%=' { AbsSimplego.ModAss }
-Item :: { Item }
-Item : {- empty -} { AbsSimplego.NoInit }
-     | '=' Expr { AbsSimplego.Init $2 }
-MaybeExpr :: { MaybeExpr }
-MaybeExpr : Expr { AbsSimplego.MaybeExprYes $1 }
-          | {- empty -} { AbsSimplego.MaybeExprNo }
-IfStmt :: { IfStmt }
-IfStmt : 'if' Expr Block MaybeElse { AbsSimplego.If $2 $3 $4 }
-MaybeElse :: { MaybeElse }
-MaybeElse : {- empty -} { AbsSimplego.NoElse }
-          | 'else' IfOrBlock { AbsSimplego.Else $2 }
-IfOrBlock :: { IfOrBlock }
-IfOrBlock : IfStmt { AbsSimplego.IfOfIfOrBlock $1 }
-          | Block { AbsSimplego.BlockOfIfOrBlock $1 }
-ForClause :: { ForClause }
-ForClause : Condition { AbsSimplego.ForCond $1 }
-          | SimpleStmt ';' Condition ';' SimpleStmt { AbsSimplego.ForFull $1 $3 $5 }
-Condition :: { Condition }
-Condition : Expr { AbsSimplego.ExprCond $1 }
-          | {- empty -} { AbsSimplego.TrueCond }
-Type :: { Type }
-Type : VarType { AbsSimplego.VarType $1 }
-     | {- empty -} { AbsSimplego.TVoid }
-VarType :: { VarType }
-VarType : 'int' { AbsSimplego.TInt }
-        | 'bool' { AbsSimplego.TBool }
-        | 'func' '(' ListVarType ')' Type { AbsSimplego.TFun $3 $5 }
-ListVarType :: { [VarType] }
-ListVarType : {- empty -} { [] }
-            | VarType { (:[]) $1 }
-            | VarType ',' ListVarType { (:) $1 $3 }
-Expr7 :: { Expr }
-Expr7 : Ident { AbsSimplego.EVar $1 }
-      | Integer { AbsSimplego.ELitInt $1 }
-      | 'func' '(' ListArg ')' Type Block { AbsSimplego.EFun $3 $5 $6 }
-      | 'true' { AbsSimplego.ELitTrue }
-      | 'false' { AbsSimplego.ELitFalse }
-      | '(' Expr ')' { $2 }
-Expr6 :: { Expr }
-Expr6 : Expr6 '(' ListExpr ')' { AbsSimplego.EApp $1 $3 }
-      | Expr7 { $1 }
-Expr5 :: { Expr }
-Expr5 : '-' Expr6 { AbsSimplego.ENeg $2 }
-      | '!' Expr6 { AbsSimplego.ENot $2 }
-      | Expr6 { $1 }
-Expr4 :: { Expr }
-Expr4 : Expr4 MulOp Expr5 { AbsSimplego.EMul $1 $2 $3 }
-      | Expr5 { $1 }
-Expr3 :: { Expr }
-Expr3 : Expr3 AddOp Expr4 { AbsSimplego.EAdd $1 $2 $3 }
-      | Expr4 { $1 }
-Expr2 :: { Expr }
-Expr2 : Expr2 RelOp Expr3 { AbsSimplego.ERel $1 $2 $3 }
-      | Expr3 { $1 }
-Expr1 :: { Expr }
-Expr1 : Expr2 '&&' Expr1 { AbsSimplego.EAnd $1 $3 } | Expr2 { $1 }
-Expr :: { Expr }
-Expr : Expr1 '||' Expr { AbsSimplego.EOr $1 $3 } | Expr1 { $1 }
-ListExpr :: { [Expr] }
-ListExpr : {- empty -} { [] }
-         | Expr { (:[]) $1 }
-         | Expr ',' ListExpr { (:) $1 $3 }
-AddOp :: { AddOp }
-AddOp : '+' { AbsSimplego.PlusOp } | '-' { AbsSimplego.MinusOp }
-MulOp :: { MulOp }
-MulOp : '*' { AbsSimplego.TimesOp }
-      | '/' { AbsSimplego.DivOp }
-      | '%' { AbsSimplego.ModOp }
-RelOp :: { RelOp }
-RelOp : '<' { AbsSimplego.LTOp }
-      | '<=' { AbsSimplego.LEOp }
-      | '>' { AbsSimplego.GTOp }
-      | '>=' { AbsSimplego.GEOp }
-      | '==' { AbsSimplego.EQOp }
-      | '!=' { AbsSimplego.NEOp }
+Integer :: {
+  (Maybe (Int, Int), Integer)
+}
+: L_integ {
+  (Just (tokenLineCol $1), read (prToken $1)) 
+}
+
+Program :: {
+  (Maybe (Int, Int), Program (Maybe (Int, Int)))
+}
+: ListTopDef {
+  (fst $1, AbsSimplego.Program (fst $1)(snd $1)) 
+}
+
+TopDef :: {
+  (Maybe (Int, Int), TopDef (Maybe (Int, Int)))
+}
+: 'func' Ident '(' ListArg ')' Type Block {
+  (Just (tokenLineCol $1), AbsSimplego.FnDef (Just (tokenLineCol $1)) (snd $2)(snd $4)(snd $6)(snd $7)) 
+}
+
+ListTopDef :: {
+  (Maybe (Int, Int), [TopDef (Maybe (Int, Int))]) 
+}
+: TopDef {
+  (fst $1, (:[]) (snd $1)) 
+}
+| TopDef ListTopDef {
+  (fst $1, (:) (snd $1)(snd $2)) 
+}
+
+Arg :: {
+  (Maybe (Int, Int), Arg (Maybe (Int, Int)))
+}
+: Ident VarType {
+  (fst $1, AbsSimplego.Arg (fst $1)(snd $1)(snd $2)) 
+}
+
+ListArg :: {
+  (Maybe (Int, Int), [Arg (Maybe (Int, Int))]) 
+}
+: {
+  (Nothing, [])
+}
+| Arg {
+  (fst $1, (:[]) (snd $1)) 
+}
+| Arg ',' ListArg {
+  (fst $1, (:) (snd $1)(snd $3)) 
+}
+
+Block :: {
+  (Maybe (Int, Int), Block (Maybe (Int, Int)))
+}
+: '{' ListStmt '}' {
+  (Just (tokenLineCol $1), AbsSimplego.Block (Just (tokenLineCol $1)) (reverse (snd $2)))
+}
+
+ListStmt :: {
+  (Maybe (Int, Int), [Stmt (Maybe (Int, Int))]) 
+}
+: {
+  (Nothing, [])
+}
+| ListStmt Stmt {
+  (fst $1, flip (:) (snd $1)(snd $2)) 
+}
+
+Stmt :: {
+  (Maybe (Int, Int), Stmt (Maybe (Int, Int)))
+}
+: SimpleStmt ';' {
+  (fst $1, AbsSimplego.SimpleStmt (fst $1)(snd $1)) 
+}
+| 'return' MaybeExpr ';' {
+  (Just (tokenLineCol $1), AbsSimplego.ReturnStmt (Just (tokenLineCol $1)) (snd $2)) 
+}
+| 'break' ';' {
+  (Just (tokenLineCol $1), AbsSimplego.BreakStmt (Just (tokenLineCol $1)))
+}
+| 'continue' ';' {
+  (Just (tokenLineCol $1), AbsSimplego.ContinueStmt (Just (tokenLineCol $1)))
+}
+| 'print' '(' Expr ')' ';' {
+  (Just (tokenLineCol $1), AbsSimplego.PrintStmt (Just (tokenLineCol $1)) (snd $3)) 
+}
+| Block {
+  (fst $1, AbsSimplego.BlockStmt (fst $1)(snd $1)) 
+}
+| IfStmt {
+  (fst $1, AbsSimplego.IfStmt (fst $1)(snd $1)) 
+}
+| 'for' ForClause Block {
+  (Just (tokenLineCol $1), AbsSimplego.ForStmt (Just (tokenLineCol $1)) (snd $2)(snd $3)) 
+}
+
+SimpleStmt :: {
+  (Maybe (Int, Int), SimpleStmt (Maybe (Int, Int)))
+}
+: {
+  (Nothing, AbsSimplego.EmptySimpleStmt Nothing)
+}
+| Expr {
+  (fst $1, AbsSimplego.ExprSimpleStmt (fst $1)(snd $1)) 
+}
+| AssStmt {
+  (fst $1, AbsSimplego.AssSimpleStmt (fst $1)(snd $1)) 
+}
+| 'var' Ident VarType Item {
+  (Just (tokenLineCol $1), AbsSimplego.DeclSimpleStmt (Just (tokenLineCol $1)) (snd $2)(snd $3)(snd $4)) 
+}
+| Ident ':=' Expr {
+  (fst $1, AbsSimplego.ShortDeclSimpleStmt (fst $1)(snd $1)(snd $3)) 
+}
+
+AssStmt :: {
+  (Maybe (Int, Int), AssStmt (Maybe (Int, Int)))
+}
+: Ident '=' Expr {
+  (fst $1, AbsSimplego.Ass (fst $1)(snd $1)(snd $3)) 
+}
+| Ident '++' {
+  (fst $1, AbsSimplego.Incr (fst $1)(snd $1)) 
+}
+| Ident '--' {
+  (fst $1, AbsSimplego.Decr (fst $1)(snd $1)) 
+}
+| Ident AssOp Expr {
+  (fst $1, AbsSimplego.AssOp (fst $1)(snd $1)(snd $2)(snd $3)) 
+}
+
+AssOp :: {
+  (Maybe (Int, Int), AssOp (Maybe (Int, Int)))
+}
+: '+=' {
+  (Just (tokenLineCol $1), AbsSimplego.AddAss (Just (tokenLineCol $1)))
+}
+| '-=' {
+  (Just (tokenLineCol $1), AbsSimplego.SubAss (Just (tokenLineCol $1)))
+}
+| '*=' {
+  (Just (tokenLineCol $1), AbsSimplego.MulAss (Just (tokenLineCol $1)))
+}
+| '/=' {
+  (Just (tokenLineCol $1), AbsSimplego.DivAss (Just (tokenLineCol $1)))
+}
+| '%=' {
+  (Just (tokenLineCol $1), AbsSimplego.ModAss (Just (tokenLineCol $1)))
+}
+
+Item :: {
+  (Maybe (Int, Int), Item (Maybe (Int, Int)))
+}
+: {
+  (Nothing, AbsSimplego.NoInit Nothing)
+}
+| '=' Expr {
+  (Just (tokenLineCol $1), AbsSimplego.Init (Just (tokenLineCol $1)) (snd $2)) 
+}
+
+MaybeExpr :: {
+  (Maybe (Int, Int), MaybeExpr (Maybe (Int, Int)))
+}
+: Expr {
+  (fst $1, AbsSimplego.MaybeExprYes (fst $1)(snd $1)) 
+}
+| {
+  (Nothing, AbsSimplego.MaybeExprNo Nothing)
+}
+
+IfStmt :: {
+  (Maybe (Int, Int), IfStmt (Maybe (Int, Int)))
+}
+: 'if' Expr Block MaybeElse {
+  (Just (tokenLineCol $1), AbsSimplego.If (Just (tokenLineCol $1)) (snd $2)(snd $3)(snd $4)) 
+}
+
+MaybeElse :: {
+  (Maybe (Int, Int), MaybeElse (Maybe (Int, Int)))
+}
+: {
+  (Nothing, AbsSimplego.NoElse Nothing)
+}
+| 'else' IfOrBlock {
+  (Just (tokenLineCol $1), AbsSimplego.Else (Just (tokenLineCol $1)) (snd $2)) 
+}
+
+IfOrBlock :: {
+  (Maybe (Int, Int), IfOrBlock (Maybe (Int, Int)))
+}
+: IfStmt {
+  (fst $1, AbsSimplego.IfOfIfOrBlock (fst $1)(snd $1)) 
+}
+| Block {
+  (fst $1, AbsSimplego.BlockOfIfOrBlock (fst $1)(snd $1)) 
+}
+
+ForClause :: {
+  (Maybe (Int, Int), ForClause (Maybe (Int, Int)))
+}
+: Condition {
+  (fst $1, AbsSimplego.ForCond (fst $1)(snd $1)) 
+}
+| SimpleStmt ';' Condition ';' SimpleStmt {
+  (fst $1, AbsSimplego.ForFull (fst $1)(snd $1)(snd $3)(snd $5)) 
+}
+
+Condition :: {
+  (Maybe (Int, Int), Condition (Maybe (Int, Int)))
+}
+: Expr {
+  (fst $1, AbsSimplego.ExprCond (fst $1)(snd $1)) 
+}
+| {
+  (Nothing, AbsSimplego.TrueCond Nothing)
+}
+
+Type :: {
+  (Maybe (Int, Int), Type (Maybe (Int, Int)))
+}
+: VarType {
+  (fst $1, AbsSimplego.VarType (fst $1)(snd $1)) 
+}
+| {
+  (Nothing, AbsSimplego.TVoid Nothing)
+}
+
+VarType :: {
+  (Maybe (Int, Int), VarType (Maybe (Int, Int)))
+}
+: 'int' {
+  (Just (tokenLineCol $1), AbsSimplego.TInt (Just (tokenLineCol $1)))
+}
+| 'bool' {
+  (Just (tokenLineCol $1), AbsSimplego.TBool (Just (tokenLineCol $1)))
+}
+| 'func' '(' ListVarType ')' Type {
+  (Just (tokenLineCol $1), AbsSimplego.TFun (Just (tokenLineCol $1)) (snd $3)(snd $5)) 
+}
+
+ListVarType :: {
+  (Maybe (Int, Int), [VarType (Maybe (Int, Int))]) 
+}
+: {
+  (Nothing, [])
+}
+| VarType {
+  (fst $1, (:[]) (snd $1)) 
+}
+| VarType ',' ListVarType {
+  (fst $1, (:) (snd $1)(snd $3)) 
+}
+
+Expr7 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Ident {
+  (fst $1, AbsSimplego.EVar (fst $1)(snd $1)) 
+}
+| Integer {
+  (fst $1, AbsSimplego.ELitInt (fst $1)(snd $1)) 
+}
+| 'func' '(' ListArg ')' Type Block {
+  (Just (tokenLineCol $1), AbsSimplego.EFun (Just (tokenLineCol $1)) (snd $3)(snd $5)(snd $6)) 
+}
+| 'true' {
+  (Just (tokenLineCol $1), AbsSimplego.ELitTrue (Just (tokenLineCol $1)))
+}
+| 'false' {
+  (Just (tokenLineCol $1), AbsSimplego.ELitFalse (Just (tokenLineCol $1)))
+}
+| '(' Expr ')' {
+  (Just (tokenLineCol $1), snd $2)
+}
+
+Expr6 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr6 '(' ListExpr ')' {
+  (fst $1, AbsSimplego.EApp (fst $1)(snd $1)(snd $3)) 
+}
+| Expr7 {
+  (fst $1, snd $1)
+}
+
+Expr5 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: '-' Expr6 {
+  (Just (tokenLineCol $1), AbsSimplego.ENeg (Just (tokenLineCol $1)) (snd $2)) 
+}
+| '!' Expr6 {
+  (Just (tokenLineCol $1), AbsSimplego.ENot (Just (tokenLineCol $1)) (snd $2)) 
+}
+| Expr6 {
+  (fst $1, snd $1)
+}
+
+Expr4 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr4 MulOp Expr5 {
+  (fst $1, AbsSimplego.EMul (fst $1)(snd $1)(snd $2)(snd $3)) 
+}
+| Expr5 {
+  (fst $1, snd $1)
+}
+
+Expr3 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr3 AddOp Expr4 {
+  (fst $1, AbsSimplego.EAdd (fst $1)(snd $1)(snd $2)(snd $3)) 
+}
+| Expr4 {
+  (fst $1, snd $1)
+}
+
+Expr2 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr2 RelOp Expr3 {
+  (fst $1, AbsSimplego.ERel (fst $1)(snd $1)(snd $2)(snd $3)) 
+}
+| Expr3 {
+  (fst $1, snd $1)
+}
+
+Expr1 :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr2 '&&' Expr1 {
+  (fst $1, AbsSimplego.EAnd (fst $1)(snd $1)(snd $3)) 
+}
+| Expr2 {
+  (fst $1, snd $1)
+}
+
+Expr :: {
+  (Maybe (Int, Int), Expr (Maybe (Int, Int)))
+}
+: Expr1 '||' Expr {
+  (fst $1, AbsSimplego.EOr (fst $1)(snd $1)(snd $3)) 
+}
+| Expr1 {
+  (fst $1, snd $1)
+}
+
+ListExpr :: {
+  (Maybe (Int, Int), [Expr (Maybe (Int, Int))]) 
+}
+: {
+  (Nothing, [])
+}
+| Expr {
+  (fst $1, (:[]) (snd $1)) 
+}
+| Expr ',' ListExpr {
+  (fst $1, (:) (snd $1)(snd $3)) 
+}
+
+AddOp :: {
+  (Maybe (Int, Int), AddOp (Maybe (Int, Int)))
+}
+: '+' {
+  (Just (tokenLineCol $1), AbsSimplego.PlusOp (Just (tokenLineCol $1)))
+}
+| '-' {
+  (Just (tokenLineCol $1), AbsSimplego.MinusOp (Just (tokenLineCol $1)))
+}
+
+MulOp :: {
+  (Maybe (Int, Int), MulOp (Maybe (Int, Int)))
+}
+: '*' {
+  (Just (tokenLineCol $1), AbsSimplego.TimesOp (Just (tokenLineCol $1)))
+}
+| '/' {
+  (Just (tokenLineCol $1), AbsSimplego.DivOp (Just (tokenLineCol $1)))
+}
+| '%' {
+  (Just (tokenLineCol $1), AbsSimplego.ModOp (Just (tokenLineCol $1)))
+}
+
+RelOp :: {
+  (Maybe (Int, Int), RelOp (Maybe (Int, Int)))
+}
+: '<' {
+  (Just (tokenLineCol $1), AbsSimplego.LTOp (Just (tokenLineCol $1)))
+}
+| '<=' {
+  (Just (tokenLineCol $1), AbsSimplego.LEOp (Just (tokenLineCol $1)))
+}
+| '>' {
+  (Just (tokenLineCol $1), AbsSimplego.GTOp (Just (tokenLineCol $1)))
+}
+| '>=' {
+  (Just (tokenLineCol $1), AbsSimplego.GEOp (Just (tokenLineCol $1)))
+}
+| '==' {
+  (Just (tokenLineCol $1), AbsSimplego.EQOp (Just (tokenLineCol $1)))
+}
+| '!=' {
+  (Just (tokenLineCol $1), AbsSimplego.NEOp (Just (tokenLineCol $1)))
+}
+
 {
 
 returnM :: a -> Err a
@@ -196,8 +488,10 @@ happyError ts =
   case ts of
     [] -> []
     [Err _] -> " due to lexer error"
-    _ -> " before " ++ unwords (map (id . prToken) (take 4 ts))
+    t:_ -> " before `" ++ id(prToken t) ++ "'"
 
 myLexer = tokens
+
+pProgram = (>>= return . snd) . pProgram_internal
 }
 

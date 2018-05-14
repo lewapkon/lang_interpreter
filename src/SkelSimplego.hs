@@ -12,114 +12,114 @@ failure x = Bad $ "Undefined case: " ++ show x
 transIdent :: Ident -> Result
 transIdent x = case x of
   Ident string -> failure x
-transProgram :: Program -> Result
+transProgram :: Show a => Program a -> Result
 transProgram x = case x of
-  Program topdefs -> failure x
-transTopDef :: TopDef -> Result
+  Program _ topdefs -> failure x
+transTopDef :: Show a => TopDef a -> Result
 transTopDef x = case x of
-  FnDef ident args type_ block -> failure x
-transArg :: Arg -> Result
+  FnDef _ ident args type_ block -> failure x
+transArg :: Show a => Arg a -> Result
 transArg x = case x of
-  Arg ident vartype -> failure x
-transBlock :: Block -> Result
+  Arg _ ident vartype -> failure x
+transBlock :: Show a => Block a -> Result
 transBlock x = case x of
-  Block stmts -> failure x
-transStmt :: Stmt -> Result
+  Block _ stmts -> failure x
+transStmt :: Show a => Stmt a -> Result
 transStmt x = case x of
-  SimpleStmt simplestmt -> failure x
-  ReturnStmt maybeexpr -> failure x
-  BreakStmt -> failure x
-  ContinueStmt -> failure x
-  PrintStmt expr -> failure x
-  BlockStmt block -> failure x
-  IfStmt ifstmt -> failure x
-  ForStmt forclause block -> failure x
-transSimpleStmt :: SimpleStmt -> Result
+  SimpleStmt _ simplestmt -> failure x
+  ReturnStmt _ maybeexpr -> failure x
+  BreakStmt _ -> failure x
+  ContinueStmt _ -> failure x
+  PrintStmt _ expr -> failure x
+  BlockStmt _ block -> failure x
+  IfStmt _ ifstmt -> failure x
+  ForStmt _ forclause block -> failure x
+transSimpleStmt :: Show a => SimpleStmt a -> Result
 transSimpleStmt x = case x of
-  EmptySimpleStmt -> failure x
-  ExprSimpleStmt expr -> failure x
-  AssSimpleStmt assstmt -> failure x
-  DeclSimpleStmt ident vartype item -> failure x
-  ShortDeclSimpleStmt ident expr -> failure x
-transAssStmt :: AssStmt -> Result
+  EmptySimpleStmt _ -> failure x
+  ExprSimpleStmt _ expr -> failure x
+  AssSimpleStmt _ assstmt -> failure x
+  DeclSimpleStmt _ ident vartype item -> failure x
+  ShortDeclSimpleStmt _ ident expr -> failure x
+transAssStmt :: Show a => AssStmt a -> Result
 transAssStmt x = case x of
-  Ass ident expr -> failure x
-  Incr ident -> failure x
-  Decr ident -> failure x
-  AssOp ident assop expr -> failure x
-transAssOp :: AssOp -> Result
+  Ass _ ident expr -> failure x
+  Incr _ ident -> failure x
+  Decr _ ident -> failure x
+  AssOp _ ident assop expr -> failure x
+transAssOp :: Show a => AssOp a -> Result
 transAssOp x = case x of
-  AddAss -> failure x
-  SubAss -> failure x
-  MulAss -> failure x
-  DivAss -> failure x
-  ModAss -> failure x
-transItem :: Item -> Result
+  AddAss _ -> failure x
+  SubAss _ -> failure x
+  MulAss _ -> failure x
+  DivAss _ -> failure x
+  ModAss _ -> failure x
+transItem :: Show a => Item a -> Result
 transItem x = case x of
-  NoInit -> failure x
-  Init expr -> failure x
-transMaybeExpr :: MaybeExpr -> Result
+  NoInit _ -> failure x
+  Init _ expr -> failure x
+transMaybeExpr :: Show a => MaybeExpr a -> Result
 transMaybeExpr x = case x of
-  MaybeExprYes expr -> failure x
-  MaybeExprNo -> failure x
-transIfStmt :: IfStmt -> Result
+  MaybeExprYes _ expr -> failure x
+  MaybeExprNo _ -> failure x
+transIfStmt :: Show a => IfStmt a -> Result
 transIfStmt x = case x of
-  If expr block maybeelse -> failure x
-transMaybeElse :: MaybeElse -> Result
+  If _ expr block maybeelse -> failure x
+transMaybeElse :: Show a => MaybeElse a -> Result
 transMaybeElse x = case x of
-  NoElse -> failure x
-  Else iforblock -> failure x
-transIfOrBlock :: IfOrBlock -> Result
+  NoElse _ -> failure x
+  Else _ iforblock -> failure x
+transIfOrBlock :: Show a => IfOrBlock a -> Result
 transIfOrBlock x = case x of
-  IfOfIfOrBlock ifstmt -> failure x
-  BlockOfIfOrBlock block -> failure x
-transForClause :: ForClause -> Result
+  IfOfIfOrBlock _ ifstmt -> failure x
+  BlockOfIfOrBlock _ block -> failure x
+transForClause :: Show a => ForClause a -> Result
 transForClause x = case x of
-  ForCond condition -> failure x
-  ForFull simplestmt1 condition simplestmt2 -> failure x
-transCondition :: Condition -> Result
+  ForCond _ condition -> failure x
+  ForFull _ simplestmt1 condition simplestmt2 -> failure x
+transCondition :: Show a => Condition a -> Result
 transCondition x = case x of
-  ExprCond expr -> failure x
-  TrueCond -> failure x
-transType :: Type -> Result
+  ExprCond _ expr -> failure x
+  TrueCond _ -> failure x
+transType :: Show a => Type a -> Result
 transType x = case x of
-  VarType vartype -> failure x
-  TVoid -> failure x
-transVarType :: VarType -> Result
+  VarType _ vartype -> failure x
+  TVoid _ -> failure x
+transVarType :: Show a => VarType a -> Result
 transVarType x = case x of
-  TInt -> failure x
-  TBool -> failure x
-  TFun vartypes type_ -> failure x
-transExpr :: Expr -> Result
+  TInt _ -> failure x
+  TBool _ -> failure x
+  TFun _ vartypes type_ -> failure x
+transExpr :: Show a => Expr a -> Result
 transExpr x = case x of
-  EVar ident -> failure x
-  ELitInt integer -> failure x
-  EFun args type_ block -> failure x
-  ELitTrue -> failure x
-  ELitFalse -> failure x
-  EApp expr exprs -> failure x
-  ENeg expr -> failure x
-  ENot expr -> failure x
-  EMul expr1 mulop expr2 -> failure x
-  EAdd expr1 addop expr2 -> failure x
-  ERel expr1 relop expr2 -> failure x
-  EAnd expr1 expr2 -> failure x
-  EOr expr1 expr2 -> failure x
-transAddOp :: AddOp -> Result
+  EVar _ ident -> failure x
+  ELitInt _ integer -> failure x
+  EFun _ args type_ block -> failure x
+  ELitTrue _ -> failure x
+  ELitFalse _ -> failure x
+  EApp _ expr exprs -> failure x
+  ENeg _ expr -> failure x
+  ENot _ expr -> failure x
+  EMul _ expr1 mulop expr2 -> failure x
+  EAdd _ expr1 addop expr2 -> failure x
+  ERel _ expr1 relop expr2 -> failure x
+  EAnd _ expr1 expr2 -> failure x
+  EOr _ expr1 expr2 -> failure x
+transAddOp :: Show a => AddOp a -> Result
 transAddOp x = case x of
-  PlusOp -> failure x
-  MinusOp -> failure x
-transMulOp :: MulOp -> Result
+  PlusOp _ -> failure x
+  MinusOp _ -> failure x
+transMulOp :: Show a => MulOp a -> Result
 transMulOp x = case x of
-  TimesOp -> failure x
-  DivOp -> failure x
-  ModOp -> failure x
-transRelOp :: RelOp -> Result
+  TimesOp _ -> failure x
+  DivOp _ -> failure x
+  ModOp _ -> failure x
+transRelOp :: Show a => RelOp a -> Result
 transRelOp x = case x of
-  LTOp -> failure x
-  LEOp -> failure x
-  GTOp -> failure x
-  GEOp -> failure x
-  EQOp -> failure x
-  NEOp -> failure x
+  LTOp _ -> failure x
+  LEOp _ -> failure x
+  GTOp _ -> failure x
+  GEOp _ -> failure x
+  EQOp _ -> failure x
+  NEOp _ -> failure x
 

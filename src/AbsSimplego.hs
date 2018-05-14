@@ -8,94 +8,221 @@ module AbsSimplego where
 
 
 newtype Ident = Ident String deriving (Eq, Ord, Show, Read)
-data Program = Program [TopDef]
+data Program a = Program a [TopDef a]
   deriving (Eq, Ord, Show, Read)
 
-data TopDef = FnDef Ident [Arg] Type Block
+instance Functor Program where
+    fmap f x = case x of
+        Program a topdefs -> Program (f a) (map (fmap f) topdefs)
+data TopDef a = FnDef a Ident [Arg a] (Type a) (Block a)
   deriving (Eq, Ord, Show, Read)
 
-data Arg = Arg Ident VarType
+instance Functor TopDef where
+    fmap f x = case x of
+        FnDef a ident args type_ block -> FnDef (f a) ident (map (fmap f) args) (fmap f type_) (fmap f block)
+data Arg a = Arg a Ident (VarType a)
+  deriving (Ord, Show, Read)
+
+instance Eq (Arg a) where
+    Arg _ i1 t1 == Arg _ i2 t2 = i1 == i2 && t1 == t2
+instance Functor Arg where
+    fmap f x = case x of
+        Arg a ident vartype -> Arg (f a) ident (fmap f vartype)
+data Block a = Block a [Stmt a]
   deriving (Eq, Ord, Show, Read)
 
-data Block = Block [Stmt]
+instance Functor Block where
+    fmap f x = case x of
+        Block a stmts -> Block (f a) (map (fmap f) stmts)
+data Stmt a
+    = SimpleStmt a (SimpleStmt a)
+    | ReturnStmt a (MaybeExpr a)
+    | BreakStmt a
+    | ContinueStmt a
+    | PrintStmt a (Expr a)
+    | BlockStmt a (Block a)
+    | IfStmt a (IfStmt a)
+    | ForStmt a (ForClause a) (Block a)
   deriving (Eq, Ord, Show, Read)
 
-data Stmt
-    = SimpleStmt SimpleStmt
-    | ReturnStmt MaybeExpr
-    | BreakStmt
-    | ContinueStmt
-    | PrintStmt Expr
-    | BlockStmt Block
-    | IfStmt IfStmt
-    | ForStmt ForClause Block
+instance Functor Stmt where
+    fmap f x = case x of
+        SimpleStmt a simplestmt -> SimpleStmt (f a) (fmap f simplestmt)
+        ReturnStmt a maybeexpr -> ReturnStmt (f a) (fmap f maybeexpr)
+        BreakStmt a -> BreakStmt (f a)
+        ContinueStmt a -> ContinueStmt (f a)
+        PrintStmt a expr -> PrintStmt (f a) (fmap f expr)
+        BlockStmt a block -> BlockStmt (f a) (fmap f block)
+        IfStmt a ifstmt -> IfStmt (f a) (fmap f ifstmt)
+        ForStmt a forclause block -> ForStmt (f a) (fmap f forclause) (fmap f block)
+data SimpleStmt a
+    = EmptySimpleStmt a
+    | ExprSimpleStmt a (Expr a)
+    | AssSimpleStmt a (AssStmt a)
+    | DeclSimpleStmt a Ident (VarType a) (Item a)
+    | ShortDeclSimpleStmt a Ident (Expr a)
   deriving (Eq, Ord, Show, Read)
 
-data SimpleStmt
-    = EmptySimpleStmt
-    | ExprSimpleStmt Expr
-    | AssSimpleStmt AssStmt
-    | DeclSimpleStmt Ident VarType Item
-    | ShortDeclSimpleStmt Ident Expr
+instance Functor SimpleStmt where
+    fmap f x = case x of
+        EmptySimpleStmt a -> EmptySimpleStmt (f a)
+        ExprSimpleStmt a expr -> ExprSimpleStmt (f a) (fmap f expr)
+        AssSimpleStmt a assstmt -> AssSimpleStmt (f a) (fmap f assstmt)
+        DeclSimpleStmt a ident vartype item -> DeclSimpleStmt (f a) ident (fmap f vartype) (fmap f item)
+        ShortDeclSimpleStmt a ident expr -> ShortDeclSimpleStmt (f a) ident (fmap f expr)
+data AssStmt a
+    = Ass a Ident (Expr a)
+    | Incr a Ident
+    | Decr a Ident
+    | AssOp a Ident (AssOp a) (Expr a)
   deriving (Eq, Ord, Show, Read)
 
-data AssStmt
-    = Ass Ident Expr | Incr Ident | Decr Ident | AssOp Ident AssOp Expr
+instance Functor AssStmt where
+    fmap f x = case x of
+        Ass a ident expr -> Ass (f a) ident (fmap f expr)
+        Incr a ident -> Incr (f a) ident
+        Decr a ident -> Decr (f a) ident
+        AssOp a ident assop expr -> AssOp (f a) ident (fmap f assop) (fmap f expr)
+data AssOp a = AddAss a | SubAss a | MulAss a | DivAss a | ModAss a
   deriving (Eq, Ord, Show, Read)
 
-data AssOp = AddAss | SubAss | MulAss | DivAss | ModAss
+instance Functor AssOp where
+    fmap f x = case x of
+        AddAss a -> AddAss (f a)
+        SubAss a -> SubAss (f a)
+        MulAss a -> MulAss (f a)
+        DivAss a -> DivAss (f a)
+        ModAss a -> ModAss (f a)
+data Item a = NoInit a | Init a (Expr a)
   deriving (Eq, Ord, Show, Read)
 
-data Item = NoInit | Init Expr
+instance Functor Item where
+    fmap f x = case x of
+        NoInit a -> NoInit (f a)
+        Init a expr -> Init (f a) (fmap f expr)
+data MaybeExpr a = MaybeExprYes a (Expr a) | MaybeExprNo a
   deriving (Eq, Ord, Show, Read)
 
-data MaybeExpr = MaybeExprYes Expr | MaybeExprNo
+instance Functor MaybeExpr where
+    fmap f x = case x of
+        MaybeExprYes a expr -> MaybeExprYes (f a) (fmap f expr)
+        MaybeExprNo a -> MaybeExprNo (f a)
+data IfStmt a = If a (Expr a) (Block a) (MaybeElse a)
   deriving (Eq, Ord, Show, Read)
 
-data IfStmt = If Expr Block MaybeElse
+instance Functor IfStmt where
+    fmap f x = case x of
+        If a expr block maybeelse -> If (f a) (fmap f expr) (fmap f block) (fmap f maybeelse)
+data MaybeElse a = NoElse a | Else a (IfOrBlock a)
   deriving (Eq, Ord, Show, Read)
 
-data MaybeElse = NoElse | Else IfOrBlock
+instance Functor MaybeElse where
+    fmap f x = case x of
+        NoElse a -> NoElse (f a)
+        Else a iforblock -> Else (f a) (fmap f iforblock)
+data IfOrBlock a
+    = IfOfIfOrBlock a (IfStmt a) | BlockOfIfOrBlock a (Block a)
   deriving (Eq, Ord, Show, Read)
 
-data IfOrBlock = IfOfIfOrBlock IfStmt | BlockOfIfOrBlock Block
+instance Functor IfOrBlock where
+    fmap f x = case x of
+        IfOfIfOrBlock a ifstmt -> IfOfIfOrBlock (f a) (fmap f ifstmt)
+        BlockOfIfOrBlock a block -> BlockOfIfOrBlock (f a) (fmap f block)
+data ForClause a
+    = ForCond a (Condition a)
+    | ForFull a (SimpleStmt a) (Condition a) (SimpleStmt a)
   deriving (Eq, Ord, Show, Read)
 
-data ForClause
-    = ForCond Condition | ForFull SimpleStmt Condition SimpleStmt
+instance Functor ForClause where
+    fmap f x = case x of
+        ForCond a condition -> ForCond (f a) (fmap f condition)
+        ForFull a simplestmt1 condition simplestmt2 -> ForFull (f a) (fmap f simplestmt1) (fmap f condition) (fmap f simplestmt2)
+data Condition a = ExprCond a (Expr a) | TrueCond a
   deriving (Eq, Ord, Show, Read)
 
-data Condition = ExprCond Expr | TrueCond
+instance Functor Condition where
+    fmap f x = case x of
+        ExprCond a expr -> ExprCond (f a) (fmap f expr)
+        TrueCond a -> TrueCond (f a)
+data Type a = VarType a (VarType a) | TVoid a
+  deriving (Ord, Show, Read)
+
+instance Eq (Type a) where
+    VarType _ t1 == VarType _ t2 = t1 == t2
+    TVoid{} == TVoid{} = True
+    _ == _ = False
+instance Functor Type where
+    fmap f x = case x of
+        VarType a vartype -> VarType (f a) (fmap f vartype)
+        TVoid a -> TVoid (f a)
+data VarType a = TInt a | TBool a | TFun a [VarType a] (Type a)
+  deriving (Ord, Show, Read)
+
+instance Eq (VarType a) where
+    TInt{} == TInt{} = True
+    TBool{} == TBool{} = True
+    TFun _ args1 t1 == TFun _ args2 t2 =
+        args1 == args2 && t1 == t2
+    _ == _ = False
+instance Functor VarType where
+    fmap f x = case x of
+        TInt a -> TInt (f a)
+        TBool a -> TBool (f a)
+        TFun a vartypes type_ -> TFun (f a) (map (fmap f) vartypes) (fmap f type_)
+data Expr a
+    = EVar a Ident
+    | ELitInt a Integer
+    | EFun a [Arg a] (Type a) (Block a)
+    | ELitTrue a
+    | ELitFalse a
+    | EApp a (Expr a) [Expr a]
+    | ENeg a (Expr a)
+    | ENot a (Expr a)
+    | EMul a (Expr a) (MulOp a) (Expr a)
+    | EAdd a (Expr a) (AddOp a) (Expr a)
+    | ERel a (Expr a) (RelOp a) (Expr a)
+    | EAnd a (Expr a) (Expr a)
+    | EOr a (Expr a) (Expr a)
   deriving (Eq, Ord, Show, Read)
 
-data Type = VarType VarType | TVoid
+instance Functor Expr where
+    fmap f x = case x of
+        EVar a ident -> EVar (f a) ident
+        ELitInt a integer -> ELitInt (f a) integer
+        EFun a args type_ block -> EFun (f a) (map (fmap f) args) (fmap f type_) (fmap f block)
+        ELitTrue a -> ELitTrue (f a)
+        ELitFalse a -> ELitFalse (f a)
+        EApp a expr exprs -> EApp (f a) (fmap f expr) (map (fmap f) exprs)
+        ENeg a expr -> ENeg (f a) (fmap f expr)
+        ENot a expr -> ENot (f a) (fmap f expr)
+        EMul a expr1 mulop expr2 -> EMul (f a) (fmap f expr1) (fmap f mulop) (fmap f expr2)
+        EAdd a expr1 addop expr2 -> EAdd (f a) (fmap f expr1) (fmap f addop) (fmap f expr2)
+        ERel a expr1 relop expr2 -> ERel (f a) (fmap f expr1) (fmap f relop) (fmap f expr2)
+        EAnd a expr1 expr2 -> EAnd (f a) (fmap f expr1) (fmap f expr2)
+        EOr a expr1 expr2 -> EOr (f a) (fmap f expr1) (fmap f expr2)
+data AddOp a = PlusOp a | MinusOp a
   deriving (Eq, Ord, Show, Read)
 
-data VarType = TInt | TBool | TFun [VarType] Type
+instance Functor AddOp where
+    fmap f x = case x of
+        PlusOp a -> PlusOp (f a)
+        MinusOp a -> MinusOp (f a)
+data MulOp a = TimesOp a | DivOp a | ModOp a
   deriving (Eq, Ord, Show, Read)
 
-data Expr
-    = EVar Ident
-    | ELitInt Integer
-    | EFun [Arg] Type Block
-    | ELitTrue
-    | ELitFalse
-    | EApp Expr [Expr]
-    | ENeg Expr
-    | ENot Expr
-    | EMul Expr MulOp Expr
-    | EAdd Expr AddOp Expr
-    | ERel Expr RelOp Expr
-    | EAnd Expr Expr
-    | EOr Expr Expr
+instance Functor MulOp where
+    fmap f x = case x of
+        TimesOp a -> TimesOp (f a)
+        DivOp a -> DivOp (f a)
+        ModOp a -> ModOp (f a)
+data RelOp a = LTOp a | LEOp a | GTOp a | GEOp a | EQOp a | NEOp a
   deriving (Eq, Ord, Show, Read)
 
-data AddOp = PlusOp | MinusOp
-  deriving (Eq, Ord, Show, Read)
-
-data MulOp = TimesOp | DivOp | ModOp
-  deriving (Eq, Ord, Show, Read)
-
-data RelOp = LTOp | LEOp | GTOp | GEOp | EQOp | NEOp
-  deriving (Eq, Ord, Show, Read)
-
+instance Functor RelOp where
+    fmap f x = case x of
+        LTOp a -> LTOp (f a)
+        LEOp a -> LEOp (f a)
+        GTOp a -> GTOp (f a)
+        GEOp a -> GEOp (f a)
+        EQOp a -> EQOp (f a)
+        NEOp a -> NEOp (f a)
