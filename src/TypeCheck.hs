@@ -10,17 +10,17 @@ import AbsSimplego
 import Common
 import Exception
 
-type TypeEnv = M.Map String (Type LineCol)
+type TypeEnv = M.Map Ident (Type LineCol)
 type TIO a = StateT TypeEnv IO a
 
-find :: String -> LineCol -> TIO (Type LineCol)
-find name loc = gets (fromMaybe (throwType ("undefined variable " ++ name) loc) . M.lookup name)
+find :: Ident -> LineCol -> TIO (Type LineCol)
+find ident@(Ident name) loc = gets (fromMaybe (throwType ("undefined variable " ++ name) loc) . M.lookup ident)
 
-declare :: String -> Type LineCol -> TIO ()
-declare name t = Control.Monad.void (modify (M.insert name t))
+declare :: Ident -> Type LineCol -> TIO ()
+declare ident t = Control.Monad.void (modify (M.insert ident t))
 
 declareArgs :: [Arg LineCol] -> TIO ()
-declareArgs = mapM_ (\ (Arg _ (Ident name) t) -> declare name (VarType Nothing t))
+declareArgs = mapM_ (\ (Arg _ ident t) -> declare ident (VarType Nothing t))
 
 typesFromArgs :: [Arg LineCol] -> [VarType LineCol]
 typesFromArgs = map (\ (Arg _ _ t) -> t)
@@ -41,9 +41,9 @@ typeCheckProgram (Program _ topDefs) = do
     put env
     mapM_ typeCheckFn topDefs
     where
-        insertIdent :: M.Map String (Type LineCol) -> TopDef LineCol -> M.Map String (Type LineCol)
-        insertIdent e (FnDef _ (Ident name) args returnType _) =
-            M.insert name (VarType Nothing (TFun Nothing (typesFromArgs args) returnType)) e
+        insertIdent :: TypeEnv -> TopDef LineCol -> TypeEnv
+        insertIdent e (FnDef _ ident args returnType _) =
+            M.insert ident (VarType Nothing (TFun Nothing (typesFromArgs args) returnType)) e
 
 typeCheckFn :: TopDef LineCol -> TIO ()
 typeCheckFn (FnDef _ _ args returnType block) = inLocalEnv $ do
@@ -81,8 +81,8 @@ typeCheckStmt (ForStmt _ clause block) returnType = inLocalEnv $ do
 typeCheckSimpleStmt :: SimpleStmt LineCol -> TIO ()
 typeCheckSimpleStmt (EmptySimpleStmt _) = return ()
 typeCheckSimpleStmt (ExprSimpleStmt _ e) = Control.Monad.void (typeCheckExpr e)
-typeCheckSimpleStmt (AssSimpleStmt _ (Ass loc (Ident name) e)) = do
-    expectedType <- find name loc
+typeCheckSimpleStmt (AssSimpleStmt _ (Ass loc ident e)) = do
+    expectedType <- find ident loc
     expectExprType expectedType e
 typeCheckSimpleStmt (AssSimpleStmt _ (AssOp _ ident _ e)) = do
     expectExprVarType (TInt Nothing) (EVar Nothing ident)
@@ -91,17 +91,17 @@ typeCheckSimpleStmt (AssSimpleStmt _ (Incr _ ident)) =
     typeCheckSimpleStmt (AssSimpleStmt Nothing (AssOp Nothing ident (AddAss Nothing) (ELitInt Nothing 1)))
 typeCheckSimpleStmt (AssSimpleStmt _ (Decr _ ident)) =
     typeCheckSimpleStmt (AssSimpleStmt Nothing (AssOp Nothing ident (SubAss Nothing) (ELitInt Nothing 1)))
-typeCheckSimpleStmt (DeclSimpleStmt _ (Ident name) expectedType NoInit{}) =
-    declare name (VarType Nothing expectedType)
-typeCheckSimpleStmt (DeclSimpleStmt _ (Ident name) expectedType (Init _ e)) = do
+typeCheckSimpleStmt (DeclSimpleStmt _ ident expectedType NoInit{}) =
+    declare ident (VarType Nothing expectedType)
+typeCheckSimpleStmt (DeclSimpleStmt _ ident expectedType (Init _ e)) = do
     expectExprVarType expectedType e
-    declare name (VarType Nothing expectedType)
-typeCheckSimpleStmt (ShortDeclSimpleStmt _ (Ident name) e) = do
+    declare ident (VarType Nothing expectedType)
+typeCheckSimpleStmt (ShortDeclSimpleStmt _ ident e) = do
     t <- typeCheckExpr e
-    declare name t
+    declare ident t
 
 typeCheckExpr :: Expr LineCol -> TIO (Type LineCol)
-typeCheckExpr (EVar loc (Ident name)) = find name loc
+typeCheckExpr (EVar loc ident) = find ident loc
 typeCheckExpr (ELitInt loc _) = return (VarType loc (TInt loc))
 typeCheckExpr (EFun loc args returnType block) = do
     oldEnv <- get
@@ -117,9 +117,11 @@ typeCheckExpr (EApp loc e args) = do
     let appliedArgVarTypes = map varTypeFromType appliedArgTypes
     case t of
         VarType _ (TFun _ argTypes returnType) ->
-            if argTypes == appliedArgVarTypes
-                then return returnType
-                else throwType "invalid types applied to function" loc
+            if length argTypes == length appliedArgVarTypes
+                then if argTypes == appliedArgVarTypes
+                    then return returnType
+                    else throwType "invalid types applied to function" loc
+                else throwType "invalid number of arguments passed to function" loc
         _ -> throwType "tried to call not a function" loc
     where
         varTypeFromType :: Type LineCol -> VarType LineCol

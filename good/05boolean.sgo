@@ -1,0 +1,27 @@
+func main() {
+    print(5 < 9);
+    print(8 <= 8);
+    print(9 > 8);
+    print(10 >= -9);
+
+    a := 0;
+    if 8 > 6 && true {
+        print(a);
+    }
+
+    if false && true {
+        a++;
+    } else {
+        a += 2;
+    }
+    print(a);
+
+    if 6 > 8 {
+        a += 3;
+    } else if false || 8 / 2 >= 3 {
+        a += 4;
+    } else {
+        a += 5;
+    }
+    print(a);
+}

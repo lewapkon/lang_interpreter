@@ -1,0 +1,7 @@
+func main() {
+    foo(10);
+}
+
+func foo(a bool) {
+    print(a);
+}

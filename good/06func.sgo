@@ -1,0 +1,13 @@
+func main() {
+    add := func(a int, b int) int {
+		return a + b;
+	};
+	print(add(8, 3));
+	print(curry(add, 5)(3));
+}
+
+func curry(f func(int, int) int, arg int) func(int) int {
+	return func(arg2 int) int {
+		return f(arg, arg2);
+	};
+}

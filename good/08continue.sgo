@@ -1,0 +1,13 @@
+func main() {
+    d := 4;
+    for {
+		print(-5);
+		d += 3;
+		if d > 15 {
+			break;
+		} else if d > 10 {
+			continue;
+		}
+		print(-10);
+	}
+}

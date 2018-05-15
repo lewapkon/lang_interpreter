@@ -13,14 +13,24 @@ import AbsSimplego
 import Common
 import Exception
 
+data StoreObject
+    = OInt Integer
+    | OBool Bool
+    | OFun Env [Arg LineCol] (Type LineCol) (Block LineCol)
+    | OVoid
+    deriving (Show, Eq)
+
+data StmtResult
+    = Returned StoreObject
+    | Broken LineCol
+    | Continued LineCol
+    | Normal deriving (Eq)
+
 type Loc = Int
 type Env = M.Map Ident Loc
-data StoreObject = OInt Integer | OBool Bool | OFun Env [Arg LineCol] (Type LineCol) (Block LineCol) | OVoid deriving (Show, Eq)
 type Store = M.Map Loc StoreObject
 type State = (Env, Store)
 type SIO a = StateT State IO a
-
-data StmtResult = Returned StoreObject | Broken LineCol | Continued LineCol | Normal deriving (Eq)
 
 alloc :: SIO Loc
 alloc = do
@@ -120,7 +130,8 @@ interpret (IfStmt _ (If _ e block maybeElse)) = do
             else interpretMaybeElse maybeElse
 
 interpret (ForStmt _ (ForCond _ cond) block) =
-    interpret (ForStmt Nothing (ForFull Nothing (EmptySimpleStmt Nothing) cond (EmptySimpleStmt Nothing)) block)
+    let forFull = ForFull Nothing (EmptySimpleStmt Nothing) cond (EmptySimpleStmt Nothing)
+    in interpret (ForStmt Nothing forFull block)
 interpret (ForStmt _ (ForFull _ preStmt cond postStmt) block) = do
     e <- getEnv
     interpretSimpleStmt preStmt
@@ -134,7 +145,9 @@ runFor cond postStmt block = do
     if b then interpret (BlockStmt Nothing block) >>= (\ case
         Broken _ -> return Normal
         Returned v -> return $ Returned v
-        _ -> interpret $ BlockStmt Nothing $ Block Nothing [SimpleStmt Nothing postStmt, ForStmt Nothing (ForFull Nothing (EmptySimpleStmt Nothing) cond postStmt) block])
+        _ ->
+            let forStmt = ForStmt Nothing (ForFull Nothing (EmptySimpleStmt Nothing) cond postStmt) block
+            in interpret $ BlockStmt Nothing $ Block Nothing [SimpleStmt Nothing postStmt, forStmt])
     else return Normal
 
 evalCondition :: Condition LineCol -> SIO Bool
@@ -159,7 +172,8 @@ interpretSimpleStmt (DeclSimpleStmt _ ident declType NoInit{}) =
     interpretSimpleStmt $ DeclSimpleStmt Nothing ident declType $ Init Nothing $ init declType
     where init TInt{} = ELitInt Nothing 0
           init TBool{} = ELitFalse Nothing
-          init (TFun _ argTypes returnType) = EFun Nothing (map (Arg Nothing (Ident "")) argTypes) returnType $ Block Nothing []
+          init (TFun _ argTypes returnType) =
+            EFun Nothing (map (Arg Nothing (Ident "")) argTypes) returnType $ Block Nothing []
 interpretSimpleStmt (DeclSimpleStmt _ ident _ (Init _ e)) = do
     v <- eval e
     declareVariable ident v
@@ -172,15 +186,15 @@ interpretAssStmt :: AssStmt LineCol -> SIO ()
 interpretAssStmt (Ass loc ident e) = assignVariable ident loc =<< eval e
 interpretAssStmt (Incr _ ident) = interpretAssStmt $ AssOp Nothing ident (AddAss Nothing) $ ELitInt Nothing 1
 interpretAssStmt (Decr _ ident) = interpretAssStmt $ AssOp Nothing ident (SubAss Nothing) $ ELitInt Nothing 1
-interpretAssStmt (AssOp loc ident op e) = do
-    v1 <- getVariable ident loc
-    v2 <- eval e
-    case (v1, v2) of (OInt n1, OInt n2) -> interpretAssStmt $ Ass Nothing ident $ ELitInt Nothing $ mapOp op n1 n2
-    where mapOp AddAss{} = (+)
-          mapOp SubAss{} = (-)
-          mapOp MulAss{} = (*)
-          mapOp DivAss{} = div
-          mapOp ModAss{} = mod
+interpretAssStmt (AssOp loc ident op e2) = do
+    OInt n <- eval (mapOp op)
+    interpretAssStmt $ Ass Nothing ident $ ELitInt Nothing n
+    where e1 = EVar loc ident
+          mapOp (AddAss loc2) = EAdd loc e1 (PlusOp loc2) e2
+          mapOp (SubAss loc2) = EAdd loc e1 (MinusOp loc2) e2
+          mapOp (MulAss loc2) = EMul loc e1 (TimesOp loc2) e2
+          mapOp (DivAss loc2) = EMul loc e1 (DivOp loc2) e2
+          mapOp (ModAss loc2) = EMul loc e1 (ModOp loc2) e2
 
 eval :: Expr LineCol -> SIO StoreObject
 eval (EVar loc ident) = getVariable ident loc
@@ -209,7 +223,7 @@ eval (EApp loc fExpr exprs) = do
     where defaultValue (VarType _ TInt{}) = OInt 0
           defaultValue (VarType _ TBool{}) = OBool False
           defaultValue (VarType _ (TFun _ argTypes returnType)) =
-              OFun M.empty (map (Arg Nothing (Ident "")) argTypes) returnType (Block Nothing [])
+              OFun M.empty (map (Arg Nothing (Ident "")) argTypes) returnType $ Block Nothing []
           defaultValue TVoid{} = OVoid
 eval (ENeg _ e) = do
     v <- eval e
@@ -219,13 +233,15 @@ eval (ENot _ e) = do
     v <- eval e
     return $ case v of
         OBool b -> OBool $ not b
-eval (EMul _ e1 op e2) = do
+eval (EMul loc e1 op e2) = do
     v1 <- eval e1
     v2 <- eval e2
-    return $ OInt $ mapOp op (intFromObject v1) (intFromObject v2)
-    where mapOp TimesOp{} = (*)
-          mapOp DivOp{} = div
-          mapOp ModOp{} = mod
+    mapOp op (intFromObject v1) (intFromObject v2)
+    where mapOp TimesOp{} x y = return $ OInt $ x * y
+          mapOp DivOp{} _ 0 = throwRuntime "cannot divide by zero" loc
+          mapOp DivOp{} x y = return $ OInt $ x `div` y
+          mapOp ModOp{} _ 0 = throwRuntime "cannot mod by zero" loc
+          mapOp ModOp{} x y = return $ OInt $ x `mod` y
 eval (EAdd _ e1 op e2) = do
     v1 <- eval e1
     v2 <- eval e2

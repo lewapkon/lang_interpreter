@@ -1,0 +1,13 @@
+func main() {
+    f := incrementer(10);
+    print(f(5));
+    print(f(5));
+    print(f(5));
+}
+
+func incrementer(a int) func(int) int {
+    return func(b int) int {
+        a += b;
+        return a;
+    };
+}
